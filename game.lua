@@ -65,7 +65,6 @@ end
 -- 
 -- opts = {
 --     kind = <string -- kind, must have a receiver defined>
---     data = <string -- data to send with the message, you do your own serialization>
 --     self = <boolean -- whether to send to self>
 --     reliable = <boolean -- whether this message MUST be received by the other end>
 --     channel = <number -- messages are ordered within channels>
@@ -73,13 +72,10 @@ end
 --     [SERVER] clientId = <number -- which client to send this message to, or 'all' if all>
 -- }
 --
-function Game:send(opts)
+function Game:send(opts, ...)
     local kind = opts.kind
     assert(type(kind) == 'string', 'send: `kind` needs to be a string')
     local kindNum = assert(self.kindToNum[kind], "no receiver for kind '" .. kind .. "'")
-
-    local data = opts.data
-    assert(type(data) == 'string', 'send: `data` needs to be a string')
 
     local reliable = opts.reliable
     assert(type(reliable) == 'boolean', 'send: `reliable` needs to be a boolean')
@@ -92,40 +88,40 @@ function Game:send(opts)
         if self.server then
             local clientId = opts.clientId
             assert(type(clientId) == 'number' or clientId == 'all', "send: `clientId` needs to be a number or 'all'")
-            self.server.sendExt(clientId, channel, flag, kindNum, data)
+            self.server.sendExt(clientId, channel, flag, kindNum, false, nil, nil, ...)
         end
         if self.client then
             local forward = opts.forward == true
             if forward then
-                self.client.sendExt(channel, flag, kindNum, data, true, channel, reliable)
+                self.client.sendExt(channel, flag, kindNum, true, channel, reliable, ...)
             else
-                self.client.sendExt(channel, flag, kindNum, data, false)
+                self.client.sendExt(channel, flag, kindNum, false, nil, nil, ...)
             end
         end
     end
 
     assert(type(opts.self) == 'boolean', 'send: `self` needs to be a boolean')
     if opts.self then
-        self:_receive(self.clientId, kindNum, data, false)
+        self:_receive(self.clientId, kindNum, false, nil, nil, ...)
     end
 end
 
-function Game:_receive(fromClientId, kindNum, data, forward, channel, reliable)
+function Game:_receive(fromClientId, kindNum, forward, channel, reliable, ...)
     local kind = assert(self.numToKind[kindNum], 'receive: bad `kindNum`')
 
     if self.receive then
-        self:receive(kind, data)
+        self:receive(kind, ...)
     end
     local receiver = self.receivers[kind]
     if receiver then
-        receiver(self, data)
+        receiver(self, ...)
     end
 
     if self.server and forward then
         local flag = reliable and 'reliable' or 'unreliable'
         for clientId in pairs(self.clientIds) do
             if clientId ~= fromClientId then
-                self.server.sendExt(clientId, channel, flag, kindNum, data)
+                self.server.sendExt(clientId, channel, flag, kindNum, false, nil, nil, ...)
             end
         end
     end
@@ -162,34 +158,27 @@ function Game:connect(clientId)
     if self.server then
         -- Send full state to new client
         do
-            local blob = BlobWriter()
-            blob:table(self.players)
             self:send({
                 clientId = clientId,
                 kind = 'fullState',
                 channel = 0,
                 reliable = true,
                 self = false,
-                data = blob:tostring(),
+            }, {
+                players = self.players,
             })
         end
 
         -- Add player for new client
         do
             local x, y = math.random(40, 800 - 40), math.random(40, 450 - 40)
-
-            local blob = BlobWriter()
-            blob:number(clientId)
-            blob:number(x)
-            blob:number(y)
             self:send({
                 clientId = 'all',
                 kind = 'addPlayer',
                 channel = 0,
                 reliable = true,
                 self = true,
-                data = blob:tostring(),
-            })
+            }, clientId, x, y)
         end
     end
 end
@@ -197,31 +186,22 @@ end
 function Game:disconnect(clientId)
     if self.server then
         -- Remove player for old client
-        local blob = BlobWriter()
-        blob:number(clientId)
         self:send({
             clientId = 'all',
             kind = 'removePlayer',
             channel = 0,
             reliable = true,
             self = true,
-            data = blob:tostring(),
-        })
+        }, clientId)
     end
 end
 
 
 function Game.receivers:fullState(data)
-    local blob = BlobReader(data)
-    self.players = blob:table()
+    self.players = data.players
 end
 
-function Game.receivers:addPlayer(data)
-    local blob = BlobReader(data)
-    local clientId = blob:number()
-    local x = blob:number()
-    local y = blob:number()
-
+function Game.receivers:addPlayer(clientId, x, y)
     self.players[clientId] = {
         x = x,
         y = y,
@@ -230,20 +210,11 @@ function Game.receivers:addPlayer(data)
     }
 end
 
-function Game.receivers:removePlayer(data)
-    local blob = BlobReader(data)
-    local clientId = blob:number()
+function Game.receivers:removePlayer(clientId)
     self.players[clientId] = nil
 end
 
-function Game.receivers:playerPositionVelocity(data)
-    local blob = BlobReader(data)
-    local clientId = blob:number()
-    local x = blob:number()
-    local y = blob:number()
-    local vx = blob:number()
-    local vy = blob:number()
-
+function Game.receivers:playerPositionVelocity(clientId, x, y, vx, vy)
     local player = self.players[clientId]
     player.x, player.y = x, y
     player.vx, player.vy = vx, vy
@@ -258,11 +229,9 @@ function Game:update(dt)
         return
     end
 
-    -- Client update
+    -- Own player input
     if self.client then
         local ownPlayer = self.players[self.clientId]
-
-        -- Own player input
         if ownPlayer then
             ownPlayer.vx, ownPlayer.vy = 0, 0
             if love.keyboard.isDown('left') or love.keyboard.isDown('a') then
@@ -278,28 +247,24 @@ function Game:update(dt)
                 ownPlayer.vy = ownPlayer.vy + PLAYER_SPEED
             end
         end
+    end
 
-        -- All players motion
-        for clientId, player in pairs(self.players) do
-            player.x, player.y = player.x + player.vx * dt, player.y + player.vy * dt
-        end
+    -- All players motion
+    for clientId, player in pairs(self.players) do
+        player.x, player.y = player.x + player.vx * dt, player.y + player.vy * dt
+    end
 
-        -- Send own player update
+    -- Send own player sync
+    if self.client then
+        local ownPlayer = self.players[self.clientId]
         if ownPlayer then
-            local blob = BlobWriter()
-            blob:number(self.clientId)
-            blob:number(ownPlayer.x)
-            blob:number(ownPlayer.y)
-            blob:number(ownPlayer.vx)
-            blob:number(ownPlayer.vy)
             self:send({
                 kind = 'playerPositionVelocity',
                 self = false,
                 reliable = false,
                 channel = 1,
                 forward = true,
-                data = blob:tostring(),
-            })
+            }, self.clientId, ownPlayer.x, ownPlayer.y, ownPlayer.vx, ownPlayer.vy)
         end
     end
 end
