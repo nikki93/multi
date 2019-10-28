@@ -1,0 +1,7 @@
+main: client.lua
+multiplayer:
+    enabled: true
+    serverMain: server.lua
+title: Multiplayer tests
+owner: nikki
+description: Testing various multiplayer things
