@@ -254,7 +254,7 @@ function Game:update(dt)
         player.x, player.y = player.x + player.vx * dt, player.y + player.vy * dt
     end
 
-    -- Send own player sync
+    -- Send own player position and velocity
     if self.client then
         local ownPlayer = self.players[self.clientId]
         if ownPlayer then
