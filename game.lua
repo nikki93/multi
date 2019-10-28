@@ -160,7 +160,7 @@ end
 
 function Game:connect(clientId)
     if self.server then
-        -- Sync current state to new client
+        -- Send full state to new client
         do
             local blob = BlobWriter()
             blob:table(self.players)
@@ -225,6 +225,8 @@ function Game.receivers:addPlayer(data)
     self.players[clientId] = {
         x = x,
         y = y,
+        vx = 0,
+        vy = 0,
     }
 end
 
@@ -234,14 +236,17 @@ function Game.receivers:removePlayer(data)
     self.players[clientId] = nil
 end
 
-function Game.receivers:playerPosition(data)
+function Game.receivers:playerPositionVelocity(data)
     local blob = BlobReader(data)
     local clientId = blob:number()
     local x = blob:number()
     local y = blob:number()
+    local vx = blob:number()
+    local vy = blob:number()
 
     local player = self.players[clientId]
     player.x, player.y = x, y
+    player.vx, player.vy = vx, vy
 end
 
 
@@ -255,31 +260,40 @@ function Game:update(dt)
 
     -- Client update
     if self.client then
-        local player = self.players[self.clientId]
+        local ownPlayer = self.players[self.clientId]
 
-        -- Player update
-        if player then
-            -- Player walking
+        -- Own player input
+        if ownPlayer then
+            ownPlayer.vx, ownPlayer.vy = 0, 0
             if love.keyboard.isDown('left') or love.keyboard.isDown('a') then
-                player.x = player.x - PLAYER_SPEED * dt
+                ownPlayer.vx = ownPlayer.vx - PLAYER_SPEED
             end
             if love.keyboard.isDown('right') or love.keyboard.isDown('d') then
-                player.x = player.x + PLAYER_SPEED * dt
+                ownPlayer.vx = ownPlayer.vx + PLAYER_SPEED
             end
             if love.keyboard.isDown('up') or love.keyboard.isDown('w') then
-                player.y = player.y - PLAYER_SPEED * dt
+                ownPlayer.vy = ownPlayer.vy - PLAYER_SPEED
             end
             if love.keyboard.isDown('down') or love.keyboard.isDown('s') then
-                player.y = player.y + PLAYER_SPEED * dt
+                ownPlayer.vy = ownPlayer.vy + PLAYER_SPEED
             end
+        end
 
-            -- Player sync
+        -- All players motion
+        for clientId, player in pairs(self.players) do
+            player.x, player.y = player.x + player.vx * dt, player.y + player.vy * dt
+        end
+
+        -- Send own player update
+        if ownPlayer then
             local blob = BlobWriter()
             blob:number(self.clientId)
-            blob:number(player.x)
-            blob:number(player.y)
+            blob:number(ownPlayer.x)
+            blob:number(ownPlayer.y)
+            blob:number(ownPlayer.vx)
+            blob:number(ownPlayer.vy)
             self:send({
-                kind = 'playerPosition',
+                kind = 'playerPositionVelocity',
                 self = false,
                 reliable = false,
                 channel = 1,
