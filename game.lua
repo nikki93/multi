@@ -197,8 +197,8 @@ function Game:disconnect(clientId)
 end
 
 
-function Game.receivers:fullState(data)
-    self.players = data.players
+function Game.receivers:fullState(state)
+    self.players = state.players
 end
 
 function Game.receivers:addPlayer(clientId, x, y)
