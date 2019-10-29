@@ -112,7 +112,7 @@ end
 function Game:send(opts, ...)
     local kind = opts.kind
     assert(type(kind) == 'string', 'send: `kind` needs to be a string')
-    local kindNum = assert(self.kindToNum[kind], "no receiver for kind '" .. kind .. "'")
+    local kindNum = assert(self.kindToNum[kind], "kind '" .. kind .. "' not defined")
 
     local defaults = self.kindDefaults[kind]
 

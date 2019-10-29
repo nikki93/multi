@@ -1,5 +1,9 @@
-clientServer = require 'https://raw.githubusercontent.com/castle-games/share.lua/6d70831ea98c57219f2aa285b4ad7bf7156f7c03/cs.lua'
-
+local clientServer
+if not pcall(function()
+    clientServer = require 'cs'
+end) then
+    clientServer = require 'lib.cs'
+end
 
 if not pcall(function()
     require 'game'
