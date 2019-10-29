@@ -31,7 +31,7 @@ function GameCommon:define()
     })
 
     -- Client sends position updates for its own player, forwarded to all
-    self:defineMessageKind('playerPosition', {
+    self:defineMessageKind('playerPositionVelocity', {
         reliable = false,
         channel = 1,
         selfSend = false,
@@ -78,14 +78,16 @@ function GameCommon.receivers:removePlayer(time, clientId)
     self.players[clientId] = nil
 end
 
-function GameCommon.receivers:playerPosition(time, clientId, x, y)
+function GameCommon.receivers:playerPositionVelocity(time, clientId, x, y, vx, vy)
     local player = self.players[clientId]
     if player then
-        assert(not player.own, 'received `playerPosition` for own player')
+        assert(not player.own, 'received `playerPositionVelocity` for own player')
         table.insert(player.positions, {
             time = time,
             x = x,
             y = y,
+            vx = vx,
+            vy = vy,
         })
     end
 end
@@ -113,8 +115,9 @@ function GameCommon:update(dt)
                 local dx, dy = positions[2].x - positions[1].x, positions[2].y - positions[1].y
                 player.x, player.y = positions[1].x + f * dx, positions[1].y + f * dy
             elseif #positions == 1 then
-                -- Have only one before, just set
-                player.x, player.y = positions[1].x, positions[1].y
+                -- Have only one before, just extrapolate with velocity
+                local idt = interpTime - positions[1].time
+                player.x, player.y = positions[1].x + positions[1].vx * idt, positions[1].y + positions[1].vy * idt
             end
         end
     end

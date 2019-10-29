@@ -98,7 +98,9 @@ function GameClient:update(dt)
 
     -- Send own player position
     if ownPlayer then
-        self:send({ kind = 'playerPosition' }, self.clientId, ownPlayer.x, ownPlayer.y)
+        self:send({
+            kind = 'playerPositionVelocity',
+        }, self.clientId, ownPlayer.x, ownPlayer.y, ownPlayer.vx, ownPlayer.vy)
     end
 end
 
