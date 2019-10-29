@@ -285,8 +285,6 @@ function Game.receivers:fullState(time, state)
 end
 
 function Game.receivers:addPlayer(time, clientId, x, y)
-    local dt = self.time - time
-
     self.players[clientId] = {
         x = x,
         y = y,
@@ -296,8 +294,6 @@ function Game.receivers:addPlayer(time, clientId, x, y)
 end
 
 function Game.receivers:removePlayer(time, clientId)
-    local dt = self.time - time
-
     self.players[clientId] = nil
 end
 
