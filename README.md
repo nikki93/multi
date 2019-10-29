@@ -35,3 +35,12 @@ In your methods, you can call methods on `self` that are pre-defined by the libr
 ### `:disconnect`
 
 ### `.receivers:<messageKind>`
+
+### LÖVE callbacks
+
+You can also implement any method named like a [LÖVE callback](https://love2d.org/wiki/love#Callbacks) to have it be called when the corresponding LÖVE event occurs. So, for example, on the client, you can implement `GameClient:keypressed(key)` which would be called when a key is pressed.
+
+**On the server, only `:update(dt)` is available.** This is because the server may run in a Castle remote server which is not connected to any input or output.
+
+On the client, all LÖVE callbacks are available and the same arguments are passed in that are passed by LÖVE.
+
