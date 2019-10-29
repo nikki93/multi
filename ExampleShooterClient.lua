@@ -136,15 +136,22 @@ function GameClient:draw()
     for clientId, player in pairs(self.players) do
         if self.photos[clientId] then
             local photo = self.photos[clientId]
-            love.graphics.draw(photo, player.x - 20, player.y - 20, 0, 40 / photo:getWidth(), 40 / photo:getHeight())
+            love.graphics.draw(
+                photo,
+                player.x - 0.5 * PLAYER_SIZE, player.y - 0.5 * PLAYER_SIZE,
+                0,
+                PLAYER_SIZE / photo:getWidth(), PLAYER_SIZE / photo:getHeight())
         else
-            love.graphics.rectangle('fill', player.x - 20, player.y - 20, 40, 40)
+            love.graphics.rectangle(
+                'fill',
+                player.x - 0.5 * PLAYER_SIZE, player.y - 0.5 * PLAYER_SIZE,
+                PLAYER_SIZE, PLAYER_SIZE)
         end
     end
 
     -- Draw bullets
     love.graphics.setColor(1, 1, 1)
     for bulletId, bullet in pairs(self.bullets) do
-        love.graphics.circle('fill', bullet.x, bullet.y, 5)
+        love.graphics.circle('fill', bullet.x, bullet.y, BULLET_RADIUS)
     end
 end
