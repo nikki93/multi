@@ -15,23 +15,6 @@ end
 
 Game.receivers = {}
 
-Game.kindToNum, Game.numToKind = {}, {}
-do
-    local nextKindNum = 1
-
-    setmetatable(Game.receivers, {
-        __newindex = function(t, k, v)
-            local num = nextKindNum
-            nextKindNum = nextKindNum + 1
-
-            Game.kindToNum[k] = num
-            Game.numToKind[num] = k
-
-            rawset(t, k, v)
-        end
-    })
-end
-
 
 function Game:_init(opts)
     self.server = opts.server
@@ -61,6 +44,11 @@ function Game:_init(opts)
         return a[2] > b[2]
     end)
     self.nextReceiveSequenceNum = 1
+
+    self.nextKindNum = 1
+    self.kindToNum, self.numToKind = {}, {}
+
+    self:defineMessageKind('_initial')
 
     self:start()
 end
@@ -99,6 +87,17 @@ function Game:_disconnect(clientId)
     if self.server then
         self.clientIds[clientId] = nil
     end
+end
+
+
+function Game:defineMessageKind(kind)
+    assert(not self.kindToNum[kind], "kind '" .. kind .. "' already defined")
+
+    local kindNum = self.nextKindNum
+    self.nextKindNum = self.nextKindNum + 1
+
+    self.kindToNum[kind] = kindNum
+    self.numToKind[kindNum] = kind
 end
 
 -- 
@@ -226,6 +225,29 @@ end
 
 
 --
+-- Default events
+--
+
+function Game:start()
+end
+
+function Game:stop()
+end
+
+function Game:connect()
+end
+
+function Game:disconnect()
+end
+
+function Game:update(dt)
+end
+
+function Game:draw()
+end
+
+
+--
 -- Inheriters
 --
 
@@ -238,224 +260,3 @@ GameServer = setmetatable({
 GameClient = setmetatable({
     receivers = setmetatable({}, { __index = GameCommon.receivers })
 }, { __index = GameCommon })
-
-
---
--- Game
---
-
--- Start / stop
-
-function Game:start()
-    self.players = {}
-    self.mes = {}
-
-    if self.client then
-        self.photoImages = {}
-    end
-end
-
-function Game:stop()
-end
-
-
--- Connect / disconnect
-
-function Game:connect(clientId)
-    if self.server then
-        -- Send full state to new client
-        do
-            self:send({
-                clientId = clientId,
-                kind = 'fullState',
-                channel = 0,
-                reliable = true,
-                self = false,
-            }, {
-                players = self.players,
-                mes = self.mes,
-            })
-        end
-
-        -- Add player for new client
-        do
-            local x, y = math.random(40, 800 - 40), math.random(40, 450 - 40)
-            self:send({
-                clientId = 'all',
-                kind = 'addPlayer',
-                channel = 0,
-                reliable = true,
-                self = true,
-            }, clientId, x, y)
-        end
-    end
-
-    if self.client then
-        -- Send `me`
-        local me = castle.user.getMe()
-        self:send({
-            kind = 'me',
-            channel = 0,
-            reliable = true,
-            self = true,
-            forward = true,
-        }, self.clientId, me)
-    end
-end
-
-function Game:disconnect(clientId)
-    if self.server then
-        -- Remove player for old client
-        self:send({
-            clientId = 'all',
-            kind = 'removePlayer',
-            channel = 0,
-            reliable = true,
-            self = true,
-        }, clientId)
-    end
-end
-
-
--- Utils
-
-function Game:loadPhoto(clientId)
-    local photoUrl = self.mes[clientId].photoUrl
-    if photoUrl then
-        network.async(function()
-            self.photoImages[clientId] = love.graphics.newImage(photoUrl)
-        end)
-    end
-end
-
-
--- Receivers
-
-function Game.receivers:fullState(time, state)
-    for clientId, player in pairs(state.players) do
-        self.players[clientId] = player
-    end
-    for clientId, me in pairs(state.mes) do
-        self.mes[clientId] = me
-        self:loadPhoto(clientId)
-    end
-end
-
-function Game.receivers:me(time, clientId, me)
-    self.mes[clientId] = me
-    if self.client then
-        self:loadPhoto(clientId)
-    end
-end
-
-function Game.receivers:addPlayer(time, clientId, x, y)
-    local player = {
-        clientId = clientId,
-        x = x,
-        y = y,
-    }
-
-    if self.client and clientId == self.clientId then
-        -- Own player -- keep velocity
-        player.vx, player.vy = 0, 0
-    else
-        -- Other's player -- keep position history
-        player.positions = {}
-    end
-
-    self.players[clientId] = player
-end
-
-function Game.receivers:removePlayer(time, clientId)
-    self.players[clientId] = nil
-end
-
-function Game.receivers:playerPosition(time, clientId, x, y)
-    local player = self.players[clientId]
-    if player then -- May arrive before `addPlayer` since it's on a different channel
-        -- Insert into position history
-        table.insert(player.positions, {
-            time = time,
-            x = x,
-            y = y,
-        })
-    end
-end
-
-
--- Update
-
-local PLAYER_SPEED = 200
-
-function Game:update(dt)
-    -- Disconnected client?
-    if self.client and not self.connected then
-        return
-    end
-
-    -- Move own player directly and send updates
-    if self.client then
-        local ownPlayer = self.players[self.clientId]
-        if ownPlayer then
-            ownPlayer.vx, ownPlayer.vy = 0, 0
-            if love.keyboard.isDown('left') or love.keyboard.isDown('a') then
-                ownPlayer.vx = ownPlayer.vx - PLAYER_SPEED
-            end
-            if love.keyboard.isDown('right') or love.keyboard.isDown('d') then
-                ownPlayer.vx = ownPlayer.vx + PLAYER_SPEED
-            end
-            if love.keyboard.isDown('up') or love.keyboard.isDown('w') then
-                ownPlayer.vy = ownPlayer.vy - PLAYER_SPEED
-            end
-            if love.keyboard.isDown('down') or love.keyboard.isDown('s') then
-                ownPlayer.vy = ownPlayer.vy + PLAYER_SPEED
-            end
-
-            ownPlayer.x, ownPlayer.y = ownPlayer.x + ownPlayer.vx * dt, ownPlayer.y + ownPlayer.vy * dt
-
-            self:send({
-                kind = 'playerPosition',
-                self = false,
-                reliable = false,
-                channel = 1,
-                forward = true,
-            }, self.clientId, ownPlayer.x, ownPlayer.y)
-        end
-    end
-
-    -- Interpolate others' players' positions based on history
-    local displayTime = self.time - 0.2
-    for clientId, player in pairs(self.players) do
-        if not (self.client and player.clientId == self.clientId) then
-            local positions = player.positions
-            while #positions >= 2 and positions[1].time < displayTime and positions[2].time < displayTime do
-                -- Remove unnecessary positions
-                table.remove(positions, 1)
-            end
-            if #positions >= 2 then
-                -- Interpolate
-                local f = (displayTime - positions[1].time) / (positions[2].time - positions[1].time)
-                local dx, dy = positions[2].x - positions[1].x, positions[2].y - positions[1].y
-                player.x, player.y = positions[1].x + f * dx, positions[1].y + f * dy
-            elseif #positions == 1 then
-                -- Set
-                player.x, player.y = positions[1].x, positions[1].y
-            end
-        end
-    end
-end
-
-
--- Draw
-
-function Game:draw()
-    -- Draw players
-    for clientId, player in pairs(self.players) do
-        if self.photoImages[clientId] then
-            local image = self.photoImages[clientId]
-            love.graphics.draw(image, player.x - 20, player.y - 20, 0, 40 / image:getWidth(), 40 / image:getHeight())
-        else
-            love.graphics.rectangle('fill', player.x - 20, player.y - 20, 40, 40)
-        end
-    end
-end
