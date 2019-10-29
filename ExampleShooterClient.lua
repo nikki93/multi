@@ -52,6 +52,9 @@ end
 function GameClient.receivers:fullState(time, state)
     -- Read players
     self.players = state.players
+    for playerId, player in pairs(self.players) do
+        self:addPlayerBump(player)
+    end
 
     -- Read `me`s and load photos
     self.mes = state.mes
@@ -61,9 +64,15 @@ function GameClient.receivers:fullState(time, state)
 
     -- Read bullets
     self.bullets = state.bullets
+    for bulletId, bullet in pairs(self.bullets) do
+        self:addBulletBump(bullet)
+    end
 
     -- Read walls
     self.walls = state.walls
+    for bulletId, wall in pairs(self.walls) do
+        self:addWallBump(wall)
+    end
 end
 
 function GameClient.receivers:bulletPosition(time, bulletId, x, y)
@@ -88,6 +97,7 @@ function GameClient:update(dt)
 
     -- Move own player
     if ownPlayer then
+        -- Set velocity based on keys
         ownPlayer.vx, ownPlayer.vy = 0, 0
         if love.keyboard.isDown('left') or love.keyboard.isDown('a') then
             ownPlayer.vx = ownPlayer.vx - PLAYER_SPEED
@@ -102,7 +112,21 @@ function GameClient:update(dt)
             ownPlayer.vy = ownPlayer.vy + PLAYER_SPEED
         end
 
-        ownPlayer.x, ownPlayer.y = ownPlayer.x + ownPlayer.vx * dt, ownPlayer.y + ownPlayer.vy * dt
+        -- Move with collision response
+        local targetX, targetY = ownPlayer.x + ownPlayer.vx * dt, ownPlayer.y + ownPlayer.vy * dt
+        local bumpX, bumpY, cols = self.bumpWorld:move(
+            ownPlayer,
+            targetX - 0.5 * PLAYER_SIZE, targetY - 0.5 * PLAYER_SIZE,
+            function(_, other)
+                if other.type == 'player' then
+                    return 'slide'
+                elseif other.type == 'wall' then
+                    return 'slide'
+                elseif other.type == 'bullet' then
+                    return 'cross'
+                end
+            end)
+        ownPlayer.x, ownPlayer.y = bumpX + 0.5 * PLAYER_SIZE, bumpY + 0.5 * PLAYER_SIZE
     end
 
     -- Handle shooting

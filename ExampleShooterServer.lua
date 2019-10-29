@@ -29,6 +29,7 @@ function GameServer:start()
 
         local wallId = self:generateId()
         self.walls[wallId] = {
+            type = 'wall',
             x = math.min(x1, x2),
             y = math.min(y1, y2),
             width = width,

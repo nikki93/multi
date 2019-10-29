@@ -93,6 +93,30 @@ function GameCommon:start()
     self.players = {}
     self.mes = {}
     self.bullets = {}
+
+    -- 'bump.lua' world
+    self.bumpWorld = bump.newWorld()
+end
+
+
+-- 'bump.lua' colliders -- 'bump.lua' uses top-left corner for position
+
+function GameCommon:addPlayerBump(player)
+    self.bumpWorld:add(
+        player,
+        player.x - 0.5 * PLAYER_SIZE, player.y - 0.5 * PLAYER_SIZE,
+        PLAYER_SIZE, PLAYER_SIZE)
+end
+
+function GameCommon:addBulletBump(bullet)
+    self.bumpWorld:add(
+        bullet,
+        bullet.x - BULLET_RADIUS, bullet.y - BULLET_RADIUS,
+        2 * BULLET_RADIUS, 2 * BULLET_RADIUS)
+end
+
+function GameCommon:addWallBump(wall)
+    self.bumpWorld:add(wall, wall.x, wall.y, wall.width, wall.height)
 end
 
 
@@ -104,6 +128,7 @@ end
 
 function GameCommon.receivers:addPlayer(time, clientId, x, y, r, g, b)
     local player = {
+        type = 'bullet',
         clientId = clientId,
         x = x,
         y = y,
@@ -123,16 +148,24 @@ function GameCommon.receivers:addPlayer(time, clientId, x, y, r, g, b)
     end
 
     self.players[clientId] = player
+
+    self:addPlayerBump(player)
 end
 
 function GameCommon.receivers:removePlayer(time, clientId)
-    self.players[clientId] = nil
+    local player = self.players[clientId]
+    if player then
+        self.bumpWorld:remove(player)
+        self.players[clientId] = nil
+    end
 end
 
 function GameCommon.receivers:playerPositionVelocity(time, clientId, x, y, vx, vy)
     local player = self.players[clientId]
     if player then
         assert(not player.own, 'received `playerPositionVelocity` for own player')
+
+        -- Insert into history, we'll interpolate in `:update` below
         table.insert(player.history, {
             time = time,
             x = x,
@@ -147,6 +180,7 @@ function GameCommon.receivers:addBullet(time, clientId, bulletId, x, y, vx, vy)
     local dt = self.time - time
 
     local bullet = {
+        type = 'bullet',
         clientId = clientId,
         x = x + vx * dt,
         y = y + vy * dt,
@@ -159,10 +193,16 @@ function GameCommon.receivers:addBullet(time, clientId, bulletId, x, y, vx, vy)
     end
 
     self.bullets[bulletId] = bullet
+
+    self:addBulletBump(bullet)
 end
 
 function GameCommon.receivers:removeBullet(time, bulletId)
-    self.bullets[bulletId] = nil
+    local bullet = self.bullets[bulletId]
+    if bullet then
+        self.bumpWorld:remove(bullet)
+        self.bullets[bulletId] = nil
+    end
 end
 
 
@@ -192,6 +232,8 @@ function GameCommon:update(dt)
                 local idt = interpTime - history[1].time
                 player.x, player.y = history[1].x + history[1].vx * idt, history[1].y + history[1].vy * idt
             end
+
+            self.bumpWorld:update(player, player.x, player.y)
         end
     end
 
