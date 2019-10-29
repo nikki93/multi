@@ -1,4 +1,4 @@
-require 'server'
+require 'lib.server' -- You would use the full 'https://...' raw URI to 'server.lua' here
 
 
 require 'GameCommon'
