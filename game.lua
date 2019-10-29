@@ -73,7 +73,7 @@ function Game:_connect(clientId)
         self:connect(clientId)
     end
 
-    -- Client will call `:connect` in `'_initial'` receiver
+    -- Client will call `:connect` in `_initial` receiver
 end
 
 function Game.receivers:_initial(_, time)
@@ -141,7 +141,7 @@ function Game:send(opts, ...)
 end
 
 function Game:_receive(fromClientId, kindNum, time, forward, channel, reliable, ...)
-    -- `'_initial'` is special -- receive it immediately. Otherwise, enqueue to receive based on priority later.
+    -- `_initial` is special -- receive it immediately. Otherwise, enqueue to receive based on priority later.
     if kindNum == self.kindToNum['_initial'] then
         self:_callReceiver(kindNum, time, ...)
     else
@@ -228,6 +228,11 @@ end
 
 function Game:start()
     self.players = {}
+    self.mes = {}
+
+    if self.client then
+        self.photoImages = {}
+    end
 end
 
 function Game:stop()
@@ -248,6 +253,7 @@ function Game:connect(clientId)
                 self = false,
             }, {
                 players = self.players,
+                mes = self.mes,
             })
         end
 
@@ -262,6 +268,18 @@ function Game:connect(clientId)
                 self = true,
             }, clientId, x, y)
         end
+    end
+
+    if self.client then
+        -- Send `me`
+        local me = castle.user.getMe()
+        self:send({
+            kind = 'me',
+            channel = 0,
+            reliable = true,
+            self = true,
+            forward = true,
+        }, self.clientId, me)
     end
 end
 
@@ -279,10 +297,35 @@ function Game:disconnect(clientId)
 end
 
 
+-- Utils
+
+function Game:loadPhoto(clientId)
+    local photoUrl = self.mes[clientId].photoUrl
+    if photoUrl then
+        network.async(function()
+            self.photoImages[clientId] = love.graphics.newImage(photoUrl)
+        end)
+    end
+end
+
+
 -- Receivers
 
 function Game.receivers:fullState(time, state)
-    self.players = state.players
+    for clientId, player in pairs(state.players) do
+        self.players[clientId] = player
+    end
+    for clientId, me in pairs(state.mes) do
+        self.mes[clientId] = me
+        self:loadPhoto(clientId)
+    end
+end
+
+function Game.receivers:me(time, clientId, me)
+    self.mes[clientId] = me
+    if self.client then
+        self:loadPhoto(clientId)
+    end
 end
 
 function Game.receivers:addPlayer(time, clientId, x, y)
@@ -388,7 +431,12 @@ end
 function Game:draw()
     -- Draw players
     for clientId, player in pairs(self.players) do
-        love.graphics.rectangle('fill', player.x - 20, player.y - 20, 40, 40)
+        if self.photoImages[clientId] then
+            local image = self.photoImages[clientId]
+            love.graphics.draw(image, player.x - 20, player.y - 20, 0, 40 / image:getWidth(), 40 / image:getHeight())
+        else
+            love.graphics.rectangle('fill', player.x - 20, player.y - 20, 40, 40)
+        end
     end
 end
 
