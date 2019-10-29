@@ -26,6 +26,8 @@ In your methods, you can call methods on `self` that are pre-defined by the libr
 
 ### `:send`
 
+### `:generateId`
+
 ## Methods you implement
 
 ### `:define`

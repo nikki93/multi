@@ -32,6 +32,8 @@ function Game:_init(opts)
         self.connected = false
     end
 
+    self.nextIdSuffix = 1
+
     self.pendingReceives = PriorityQueue.new(function(a, b)
         -- Priority is `{ time, receiveSequenceNum }` so time-ties are broken sequentially
         if a[1] > b[1] then
@@ -242,6 +244,23 @@ function Game:_update(dt)
     self.nextReceiveSequenceNum = 1
 
     self:update(dt)
+end
+
+
+function Game:generateId()
+    assert(self.server or self.connected, "generateId: need to be connected")
+
+    local suffix = tostring(self.nextIdSuffix)
+    self.nextIdSuffix = self.nextIdSuffix + 1
+
+    local prefix
+    if self.server then
+        prefix = '0'
+    else
+        prefix = tostring(self.clientId)
+    end
+
+    return prefix .. '-' .. suffix
 end
 
 

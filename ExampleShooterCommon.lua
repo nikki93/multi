@@ -1,3 +1,10 @@
+PLAYER_SPEED = 200
+
+SHOOT_RATE = 5
+BULLET_SPEED = 700
+BULLET_LIFETIME = 2
+
+
 -- Define
 
 function GameCommon:define()
@@ -38,6 +45,37 @@ function GameCommon:define()
         selfSend = false,
         forward = true,
     })
+
+    -- Client sends shoot message to server when it wants to shoot a bullet
+    self:defineMessageKind('shoot', {
+        reliable = true,
+        channel = 2,
+        selfSend = false,
+        forward = false,
+    })
+
+    -- Server sends add or remove bullet events to all
+    self:defineMessageKind('addBullet', {
+        to = 'all',
+        reliable = true,
+        channel = 2,
+        selfSend = true,
+    })
+    self:defineMessageKind('removeBullet', {
+        to = 'all',
+        reliable = true,
+        channel = 2,
+        selfSend = true,
+    })
+
+    -- Server sends bullet position updates to all
+    self:defineMessageKind('bulletPosition', {
+        to = 'all',
+        reliable = false,
+        channel = 3,
+        rate = 5,
+        selfSend = false,
+    })
 end
 
 
@@ -46,6 +84,7 @@ end
 function GameCommon:start()
     self.players = {}
     self.mes = {}
+    self.bullets = {}
 end
 
 
@@ -93,6 +132,22 @@ function GameCommon.receivers:playerPositionVelocity(time, clientId, x, y, vx, v
     end
 end
 
+function GameCommon.receivers:addBullet(time, clientId, bulletId, x, y, vx, vy)
+    local dt = self.time - time
+    self.bullets[bulletId] = {
+        clientId = clientId,
+        x = x + vx * dt,
+        y = y + vy * dt,
+        vx = vx,
+        vy = vy,
+        timeLeft = BULLET_LIFETIME,
+    }
+end
+
+function GameCommon.receivers:removeBullet(time, bulletId)
+    self.bullets[bulletId] = nil
+end
+
 
 -- Update
 
@@ -100,7 +155,7 @@ local PLAYER_SPEED = 200
 
 function GameCommon:update(dt)
     -- Interpolate players' positions based on history
-    local interpTime = self.time - 0.2 -- Interpolated players are slightly in the past
+    local interpTime = self.time - 0.1 -- Interpolated players are slightly in the past
     for clientId, player in pairs(self.players) do
         if not player.own then -- Own player is directly moved, not interpolated
             local history = player.history
@@ -121,5 +176,10 @@ function GameCommon:update(dt)
                 player.x, player.y = history[1].x + history[1].vx * idt, history[1].y + history[1].vy * idt
             end
         end
+    end
+
+    -- Move bullets
+    for bulletId, bullet in pairs(self.bullets) do
+        bullet.x, bullet.y = bullet.x + bullet.vx * dt, bullet.y + bullet.vy * dt
     end
 end

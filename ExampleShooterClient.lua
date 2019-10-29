@@ -10,7 +10,10 @@ function GameClient:start()
     GameCommon.start(self)
 
     -- Client-local data
+
     self.photos = {}
+
+    self.shotTimer = 0
 end
 
 
@@ -48,22 +51,28 @@ end
 
 function GameClient.receivers:fullState(time, state)
     -- Read players
-    for clientId, player in pairs(state.players) do
-        self.players[clientId] = player
-    end
+    self.players = state.players
 
     -- Read `me`s and load photos
-    for clientId, me in pairs(state.mes) do
-        self.mes[clientId] = me
-
+    self.mes = state.mes
+    for clientId, me in pairs(self.mes) do
         self:loadPhoto(clientId)
+    end
+
+    -- Read bullets
+    self.bullets = state.bullets
+end
+
+function GameClient.receivers:bulletPosition(time, bulletId, x, y)
+    local bullet = self.bullets[bulletId]
+    if bullet then
+        local dt = self.time - time
+        bullet.x, bullet.y = x + bullet.vx * dt, y + bullet.vy * dt
     end
 end
 
 
 -- Update
-
-local PLAYER_SPEED = 200
 
 function GameClient:update(dt)
     -- Not connected?
@@ -93,8 +102,22 @@ function GameClient:update(dt)
         ownPlayer.x, ownPlayer.y = ownPlayer.x + ownPlayer.vx * dt, ownPlayer.y + ownPlayer.vy * dt
     end
 
+    -- Handle shooting
+    if ownPlayer then
+        self.shotTimer = self.shotTimer - dt
+
+        if love.mouse.isDown(1) and self.shotTimer <= 0 then
+            self.shotTimer = 1 / SHOOT_RATE
+
+            local mouseX, mouseY = love.mouse.getPosition()
+            local dirX, dirY = mouseX - ownPlayer.x, mouseY - ownPlayer.y
+
+            self:send({ kind = 'shoot' }, self.clientId, dirX, dirY)
+        end
+    end
+
     -- Do common update
-    GameCommon.update(self)
+    GameCommon.update(self, dt)
 
     -- Send own player position
     if ownPlayer then
@@ -109,6 +132,7 @@ end
 
 function GameClient:draw()
     -- Draw players
+    love.graphics.setColor(1, 1, 1)
     for clientId, player in pairs(self.players) do
         if self.photos[clientId] then
             local photo = self.photos[clientId]
@@ -116,5 +140,11 @@ function GameClient:draw()
         else
             love.graphics.rectangle('fill', player.x - 20, player.y - 20, 40, 40)
         end
+    end
+
+    -- Draw bullets
+    love.graphics.setColor(1, 1, 1)
+    for bulletId, bullet in pairs(self.bullets) do
+        love.graphics.circle('fill', bullet.x, bullet.y, 5)
     end
 end
