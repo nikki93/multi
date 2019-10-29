@@ -122,11 +122,6 @@ function Game:send(opts, ...)
 
     local reliable = opts.reliable or defaults.reliable
     assert(type(reliable) == 'boolean', 'send: `reliable` needs to be a boolean')
-    local flag = reliable and 'reliable' or 'unreliable'
-
-    local channel = opts.channel or defaults.channel
-    assert(type(channel) == 'number', 'send: `channel` needs to be a number')
-    assert(0 <= channel and channel < NUM_CHANNELS, 'send: `channel` out of range')
 
     local shouldSend
     if reliable then
@@ -139,13 +134,22 @@ function Game:send(opts, ...)
     end
 
     if shouldSend then
+        local channel = opts.channel or defaults.channel
+        assert(type(channel) == 'number', 'send: `channel` needs to be a number')
+        assert(0 <= channel and channel < NUM_CHANNELS, 'send: `channel` out of range')
+
+        local flag = reliable and 'reliable' or 'unreliable'
+
         if self.server then
             local to = opts.to or defaults.to
             assert(type(to) == 'number' or to == 'all', "send: `to` needs to be a number or 'all'")
             self.server.sendExt(to, channel, flag, kindNum, self.time, false, nil, nil, ...)
         end
         if self.client then
-            local forward = (opts.forward == true) or defaults.forward
+            local forward = opts.forward
+            if forward == nil then
+                forward = defaults.forward
+            end
             assert(type(forward) == 'boolean', 'send: `forward` needs to be a boolean')
             if forward then
                 self.client.sendExt(channel, flag, kindNum, self.time, true, channel, reliable, ...)
@@ -155,7 +159,10 @@ function Game:send(opts, ...)
         end
     end
 
-    local selfSend = (opts.selfSend == true) or defaults.selfSend
+    local selfSend = opts.selfSend
+    if selfSend == nil then
+        selfSend = defaults.selfSend
+    end
     assert(type(selfSend) == 'boolean', 'send: `self` needs to be a boolean')
     if selfSend then
         self:_receive(self.clientId, kindNum, self.time, false, nil, nil, ...)

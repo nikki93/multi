@@ -3,15 +3,15 @@
 function GameCommon:define()
     -- Server sends full state to a new client when it connects
     self:defineMessageKind('fullState', {
-        channel = 0,
         reliable = true,
+        channel = 0,
         selfSend = false,
     })
 
     -- Client sends user profile info when it connects, forwarded to all and self
     self:defineMessageKind('me', {
-        channel = 0,
         reliable = true,
+        channel = 0,
         selfSend = true,
         forward = true,
     })
@@ -19,14 +19,14 @@ function GameCommon:define()
     -- Server sends add or remove player events to all
     self:defineMessageKind('addPlayer', {
         to = 'all',
-        channel = 0,
         reliable = true,
+        channel = 0,
         selfSend = true,
     })
     self:defineMessageKind('removePlayer', {
         to = 'all',
-        channel = 0,
         reliable = true,
+        channel = 0,
         selfSend = true,
     })
 
@@ -34,9 +34,9 @@ function GameCommon:define()
     self:defineMessageKind('playerPositionVelocity', {
         reliable = false,
         channel = 1,
+        rate = 20,
         selfSend = false,
         forward = true,
-        rate = 20,
     })
 end
 
