@@ -30,7 +30,7 @@ end
 
 -- Receivers
 
-function GameServer.receivers:shoot(time, clientId, dirX, dirY)
+function GameServer.receivers:shoot(time, clientId, x, y, dirX, dirY)
     local player = self.players[clientId]
     if not player then
         return
@@ -42,7 +42,10 @@ function GameServer.receivers:shoot(time, clientId, dirX, dirY)
     dirX, dirY = dirX / dirLen, dirY / dirLen
     local vx, vy = BULLET_SPEED * dirX, BULLET_SPEED * dirY
 
-    self:send({ kind = 'addBullet' }, clientId, bulletId, player.x, player.y, vx, vy)
+    -- Compromise between server and client player position
+    local x, y = 0.5 * (player.x + x), 0.5 * (player.y + y)
+
+    self:send({ kind = 'addBullet' }, clientId, bulletId, x, y, vx, vy)
 end
 
 

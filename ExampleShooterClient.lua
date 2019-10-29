@@ -112,7 +112,7 @@ function GameClient:update(dt)
             local mouseX, mouseY = love.mouse.getPosition()
             local dirX, dirY = mouseX - ownPlayer.x, mouseY - ownPlayer.y
 
-            self:send({ kind = 'shoot' }, self.clientId, dirX, dirY)
+            self:send({ kind = 'shoot' }, self.clientId, ownPlayer.x, ownPlayer.y, dirX, dirY)
         end
     end
 

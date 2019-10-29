@@ -1,3 +1,6 @@
+bump = require 'https://raw.githubusercontent.com/kikito/bump.lua/7cae5d1ef796068a185d8e2d0c632a030ac8c148/bump.lua'
+
+
 PLAYER_SPEED = 170
 PLAYER_SIZE = 30
 
@@ -145,7 +148,7 @@ function GameCommon.receivers:addBullet(time, clientId, bulletId, x, y, vx, vy)
         vy = vy,
     }
 
-    if self.server then
+    if self.server then -- Server keeps track of lifetime
         bullet.timeLeft = BULLET_LIFETIME
     end
 
@@ -163,7 +166,7 @@ local PLAYER_SPEED = 200
 
 function GameCommon:update(dt)
     -- Interpolate players' positions based on history
-    local interpTime = self.time - 0.1 -- Interpolated players are slightly in the past
+    local interpTime = self.time - 0.15 -- Interpolated players are slightly in the past
     for clientId, player in pairs(self.players) do
         if not player.own then -- Own player is directly moved, not interpolated
             local history = player.history

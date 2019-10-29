@@ -20,7 +20,19 @@ You implement methods in `GameCommon`, `GameClient` and `GameServer` to define y
 
 In your methods, you can call methods on `self` that are pre-defined by the library. These are listed under the 'Methods you call' heading below.
 
-## Methods you call
+## Variables you can read
+
+### `self.server`
+
+### `self.client`
+
+### `self.connected`
+
+### `self.clientId`
+
+### `self.time`
+
+## Methods you can call
 
 ### `:defineMessageKind`
 
@@ -28,7 +40,7 @@ In your methods, you can call methods on `self` that are pre-defined by the libr
 
 ### `:generateId`
 
-## Methods you implement
+## Methods you can implement
 
 ### `:define`
 

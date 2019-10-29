@@ -24,17 +24,17 @@ function Game:_init(opts)
     self.client = opts.client
 
     if self.server then
-        self.clientIds = {}
-        self.startTime = love.timer.getTime()
+        self._clientIds = {}
+        self._startTime = love.timer.getTime()
     end
 
     if self.client then
         self.connected = false
     end
 
-    self.nextIdSuffix = 1
+    self._nextIdSuffix = 1
 
-    self.pendingReceives = PriorityQueue.new(function(a, b)
+    self._pendingReceives = PriorityQueue.new(function(a, b)
         -- Priority is `{ time, receiveSequenceNum }` so time-ties are broken sequentially
         if a[1] > b[1] then
             return true
@@ -44,13 +44,13 @@ function Game:_init(opts)
         end
         return a[2] > b[2]
     end)
-    self.nextReceiveSequenceNum = 1
+    self._nextReceiveSequenceNum = 1
 
-    self.nextKindNum = 1
-    self.kindToNum, self.numToKind = {}, {}
-    self.kindDefaults = {}
+    self._nextKindNum = 1
+    self._kindToNum, self._numToKind = {}, {}
+    self._kindDefaults = {}
 
-    self.kindThrottles = {} -- `kind` -> `{ period, timeSinceLastSend }`
+    self._kindThrottles = {} -- `kind` -> `{ period, timeSinceLastSend }`
 
     self:defineMessageKind('_initial', {
         reliable = true,
@@ -65,7 +65,7 @@ end
 
 function Game:_connect(clientId)
     if self.server then
-        self.clientIds[clientId] = true
+        self._clientIds[clientId] = true
         self:send({
             to = clientId,
             kind = '_initial',
@@ -81,7 +81,7 @@ function Game.receivers:_initial(_, time)
 
     -- Initialize time
     self.time = time
-    self.timeDelta = time - love.timer.getTime()
+    self._timeDelta = time - love.timer.getTime()
 
     -- Ready to call `:connect`
     self.connected = true
@@ -92,24 +92,24 @@ end
 function Game:_disconnect(clientId)
     self:disconnect(clientId)
     if self.server then
-        self.clientIds[clientId] = nil
+        self._clientIds[clientId] = nil
     end
 end
 
 
 function Game:defineMessageKind(kind, defaults)
-    assert(not self.kindToNum[kind], "kind '" .. kind .. "' already defined")
+    assert(not self._kindToNum[kind], "kind '" .. kind .. "' already defined")
 
-    local kindNum = self.nextKindNum
-    self.nextKindNum = self.nextKindNum + 1
+    local kindNum = self._nextKindNum
+    self._nextKindNum = self._nextKindNum + 1
 
-    self.kindToNum[kind] = kindNum
-    self.numToKind[kindNum] = kind
+    self._kindToNum[kind] = kindNum
+    self._numToKind[kindNum] = kind
 
-    self.kindDefaults[kind] = defaults
+    self._kindDefaults[kind] = defaults
 
     local period = 1 / math.max(0, math.min(defaults.rate or 35, 35))
-    self.kindThrottles[kind] = {
+    self._kindThrottles[kind] = {
         period = period,
         timeSinceLastSend = period * math.random(),
     }
@@ -118,9 +118,9 @@ end
 function Game:send(opts, ...)
     local kind = opts.kind
     assert(type(kind) == 'string', 'send: `kind` needs to be a string')
-    local kindNum = assert(self.kindToNum[kind], "kind '" .. kind .. "' not defined")
+    local kindNum = assert(self._kindToNum[kind], "kind '" .. kind .. "' not defined")
 
-    local defaults = self.kindDefaults[kind]
+    local defaults = self._kindDefaults[kind]
 
     local reliable = opts.reliable or defaults.reliable
     assert(type(reliable) == 'boolean', 'send: `reliable` needs to be a boolean')
@@ -129,7 +129,7 @@ function Game:send(opts, ...)
     if reliable then
         shouldSend = true
     else
-        local throttle = self.kindThrottles[kind]
+        local throttle = self._kindThrottles[kind]
         if throttle.timeSinceLastSend > throttle.period then
             shouldSend = true
         end
@@ -173,22 +173,22 @@ end
 
 function Game:_receive(fromClientId, kindNum, time, forward, channel, reliable, ...)
     -- `_initial` is special -- receive it immediately. Otherwise, enqueue to receive based on priority later.
-    if kindNum == self.kindToNum['_initial'] then
+    if kindNum == self._kindToNum['_initial'] then
         self:_callReceiver(kindNum, time, ...)
     else
-        self.pendingReceives:Add({
+        self._pendingReceives:Add({
             kindNum = kindNum,
             time = time,
             args = { ... },
             nArgs = select('#', ...),
-        }, { time, self.nextReceiveSequenceNum })
-        self.nextReceiveSequenceNum = self.nextReceiveSequenceNum + 1
+        }, { time, self._nextReceiveSequenceNum })
+        self._nextReceiveSequenceNum = self._nextReceiveSequenceNum + 1
     end
 
     -- If forwarding, do that immediately
     if self.server and forward then
         local flag = reliable and 'reliable' or 'unreliable'
-        for clientId in pairs(self.clientIds) do
+        for clientId in pairs(self._clientIds) do
             if clientId ~= fromClientId then
                 self.server.sendExt(clientId, channel, flag, kindNum, time, false, nil, nil, ...)
             end
@@ -197,7 +197,7 @@ function Game:_receive(fromClientId, kindNum, time, forward, channel, reliable, 
 end
 
 function Game:_callReceiver(kindNum, time, ...)
-    local kind = assert(self.numToKind[kindNum], 'receive: bad `kindNum`')
+    local kind = assert(self._numToKind[kindNum], 'receive: bad `kindNum`')
 
     local receiver = self.receivers[kind]
     if receiver then
@@ -208,7 +208,7 @@ end
 
 function Game:_update(dt)
     -- Manage throttling
-    for kind, throttle in pairs(self.kindThrottles) do
+    for kind, throttle in pairs(self._kindThrottles) do
         if throttle.timeSinceLastSend > throttle.period then
             -- Sending was enabled last frame, so reset
             throttle.timeSinceLastSend = 0
@@ -218,22 +218,22 @@ function Game:_update(dt)
 
     -- Let time pass
     if self.server then
-        self.time = love.timer.getTime() - self.startTime
+        self.time = love.timer.getTime() - self._startTime
     end
-    if self.client and self.timeDelta then
-        self.time = love.timer.getTime() + self.timeDelta
+    if self.client and self._timeDelta then
+        self.time = love.timer.getTime() + self._timeDelta
     end
 
     if self.time then
         while true do
-            local pendingReceive = self.pendingReceives:Peek()
+            local pendingReceive = self._pendingReceives:Peek()
             if pendingReceive == nil then
                 break
             end
             if pendingReceive.time > self.time then
                 break
             end
-            self.pendingReceives:Pop()
+            self._pendingReceives:Pop()
 
             self:_callReceiver(
                 pendingReceive.kindNum,
@@ -241,7 +241,7 @@ function Game:_update(dt)
                 unpack(pendingReceive.args, 1, pendingReceive.nArgs))
         end
     end
-    self.nextReceiveSequenceNum = 1
+    self._nextReceiveSequenceNum = 1
 
     self:update(dt)
 end
@@ -250,8 +250,8 @@ end
 function Game:generateId()
     assert(self.server or self.connected, "generateId: need to be connected")
 
-    local suffix = tostring(self.nextIdSuffix)
-    self.nextIdSuffix = self.nextIdSuffix + 1
+    local suffix = tostring(self._nextIdSuffix)
+    self._nextIdSuffix = self._nextIdSuffix + 1
 
     local prefix
     if self.server then
