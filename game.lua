@@ -1,6 +1,9 @@
 local Game = {}
 
 
+local PriorityQueue = require 'https://raw.githubusercontent.com/Roblox/Wiki-Lua-Libraries/776a48bd1562c7df557a92e3ade6544efa5b031b/StandardLibraries/PriorityQueue.lua'
+
+
 --
 -- Framework
 --
@@ -31,6 +34,7 @@ function Game:_init(opts)
 
     if self.server then
         self.clientIds = {}
+        self.startTime = love.timer.getTime()
     end
 
     if self.client then
@@ -41,18 +45,48 @@ function Game:_init(opts)
     self.sendUnreliablesRate = 35
     self.lastSentUnreliables = nil
 
+    self.pendingReceives = PriorityQueue.new(function(a, b)
+        -- Priority is `{ time, receiveSequenceNum }` so time-ties are broken sequentially
+        if a[1] > b[1] then
+            return true
+        end
+        if a[1] < b[1] then
+            return false
+        end
+        return a[2] > b[2]
+    end)
+    self.nextReceiveSequenceNum = 1
+
     self:start()
 end
 
 function Game:_connect(clientId)
     if self.server then
         self.clientIds[clientId] = true
+        self:send({
+            clientId = clientId,
+            kind = '_initial',
+            reliable = true,
+            channel = 0,
+            self = false,
+        }, self.time)
+        self:connect(clientId)
     end
-    if self.client then
-        self.connected = true
-        self.clientId = self.client.id
-    end
-    self:connect(clientId)
+
+    -- Client will call `:connect` in `'_initial'` receiver
+end
+
+function Game.receivers:_initial(_, time)
+    -- This is only sent server -> client
+
+    -- Initialize time
+    self.time = time
+    self.timeDelta = time - love.timer.getTime()
+
+    -- Ready to call `:connect`
+    self.connected = true
+    self.clientId = self.client.id
+    self:connect()
 end
 
 function Game:_disconnect(clientId)
@@ -88,47 +122,64 @@ function Game:send(opts, ...)
         if self.server then
             local clientId = opts.clientId
             assert(type(clientId) == 'number' or clientId == 'all', "send: `clientId` needs to be a number or 'all'")
-            self.server.sendExt(clientId, channel, flag, kindNum, false, nil, nil, ...)
+            self.server.sendExt(clientId, channel, flag, kindNum, self.time, false, nil, nil, ...)
         end
         if self.client then
             local forward = opts.forward == true
             if forward then
-                self.client.sendExt(channel, flag, kindNum, true, channel, reliable, ...)
+                self.client.sendExt(channel, flag, kindNum, self.time, true, channel, reliable, ...)
             else
-                self.client.sendExt(channel, flag, kindNum, false, nil, nil, ...)
+                self.client.sendExt(channel, flag, kindNum, self.time, false, nil, nil, ...)
             end
         end
     end
 
     assert(type(opts.self) == 'boolean', 'send: `self` needs to be a boolean')
     if opts.self then
-        self:_receive(self.clientId, kindNum, false, nil, nil, ...)
+        self:_receive(self.clientId, kindNum, self.time, false, nil, nil, ...)
     end
 end
 
-function Game:_receive(fromClientId, kindNum, forward, channel, reliable, ...)
-    local kind = assert(self.numToKind[kindNum], 'receive: bad `kindNum`')
-
-    if self.receive then
-        self:receive(kind, ...)
+function Game:_receive(fromClientId, kindNum, time, forward, channel, reliable, ...)
+    -- `'_initial'` is special -- receive it immediately. Otherwise, enqueue to receive based on priority later.
+    if kindNum == self.kindToNum['_initial'] then
+        self:_callReceiver(kindNum, time, ...)
+    else
+        self.pendingReceives:Add({
+            kindNum = kindNum,
+            time = time,
+            args = { ... },
+            nArgs = select('#', ...),
+        }, { time, self.nextReceiveSequenceNum })
+        self.nextReceiveSequenceNum = self.nextReceiveSequenceNum + 1
     end
-    local receiver = self.receivers[kind]
-    if receiver then
-        receiver(self, ...)
-    end
 
+    -- If forwarding, do that immediately
     if self.server and forward then
         local flag = reliable and 'reliable' or 'unreliable'
         for clientId in pairs(self.clientIds) do
             if clientId ~= fromClientId then
-                self.server.sendExt(clientId, channel, flag, kindNum, false, nil, nil, ...)
+                self.server.sendExt(clientId, channel, flag, kindNum, time, false, nil, nil, ...)
             end
         end
     end
 end
 
+function Game:_callReceiver(kindNum, time, ...)
+    local kind = assert(self.numToKind[kindNum], 'receive: bad `kindNum`')
+
+    if self.receive then
+        self:receive(kind, time, ...)
+    end
+    local receiver = self.receivers[kind]
+    if receiver then
+        receiver(self, time, ...)
+    end
+end
+
 
 function Game:_update(dt)
+    -- Periodically enable sending unreliable messages
     if self.sendUnreliables then
         self.sendUnreliables = false
         self.lastSentUnreliables = love.timer.getTime()
@@ -137,6 +188,33 @@ function Game:_update(dt)
             self.sendUnreliables = true
         end
     end
+
+    -- Let time pass
+    if self.server then
+        self.time = love.timer.getTime() - self.startTime
+    end
+    if self.client and self.timeDelta then
+        self.time = love.timer.getTime() + self.timeDelta
+    end
+
+    if self.time then
+        while true do
+            local pendingReceive = self.pendingReceives:Peek()
+            if pendingReceive == nil then
+                break
+            end
+            if pendingReceive.time > self.time then
+                break
+            end
+            self.pendingReceives:Pop()
+
+            self:_callReceiver(
+                pendingReceive.kindNum,
+                pendingReceive.time,
+                unpack(pendingReceive.args, 1, pendingReceive.nArgs))
+        end
+    end
+    self.nextReceiveSequenceNum = 1
 
     self:update(dt)
 end
@@ -197,11 +275,18 @@ function Game:disconnect(clientId)
 end
 
 
-function Game.receivers:fullState(state)
+function Game.receivers:fullState(time, state)
+    local dt = self.time - time
+
     self.players = state.players
+    for clientId, player in pairs(self.players) do
+        player.x, player.y = player.x + player.vx * dt, player.y + player.vy * dt
+    end
 end
 
-function Game.receivers:addPlayer(clientId, x, y)
+function Game.receivers:addPlayer(time, clientId, x, y)
+    local dt = self.time - time
+
     self.players[clientId] = {
         x = x,
         y = y,
@@ -210,13 +295,17 @@ function Game.receivers:addPlayer(clientId, x, y)
     }
 end
 
-function Game.receivers:removePlayer(clientId)
+function Game.receivers:removePlayer(time, clientId)
+    local dt = self.time - time
+
     self.players[clientId] = nil
 end
 
-function Game.receivers:playerPositionVelocity(clientId, x, y, vx, vy)
+function Game.receivers:playerPositionVelocity(time, clientId, x, y, vx, vy)
+    local dt = self.time - time
+
     local player = self.players[clientId]
-    player.x, player.y = x, y
+    player.x, player.y = x + vx * dt, y + vy * dt
     player.vx, player.vy = vx, vy
 end
 
