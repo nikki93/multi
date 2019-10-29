@@ -4,6 +4,40 @@ require 'lib.server' -- You would use the full 'https://...' raw URI to 'lib/ser
 require 'ExampleShooterCommon'
 
 
+-- Start / stop
+
+function GameServer:start()
+    GameCommon.start(self)
+
+    -- Generate walls
+    self.walls = {}
+    for i = 1, 8 do
+        local x1, y1 = math.random(0, 800), math.random(0, 450)
+        local x2, y2
+        local width, height
+        while true do
+            x2, y2 = math.random(0, 800), math.random(0, 450)
+            width, height = math.abs(x1 - x2), math.abs(y1 - y2)
+            local area = width * height
+            if MIN_WALL_SIZE <= width and width <= MAX_WALL_SIZE and
+                MIN_WALL_SIZE <= height and height <= MAX_WALL_SIZE then
+                -- Fits our criteria
+                break
+            end
+            -- Doesn't fit, regen
+        end
+
+        local wallId = self:generateId()
+        self.walls[wallId] = {
+            x = math.min(x1, x2),
+            y = math.min(y1, y2),
+            width = width,
+            height = height,
+        }
+    end
+end
+
+
 -- Connect / disconnect
 
 function GameServer:connect(clientId)
@@ -15,11 +49,13 @@ function GameServer:connect(clientId)
         players = self.players,
         mes = self.mes,
         bullets = self.bullets,
+        walls = self.walls,
     })
 
     -- Add player for new client
+    local r, g, b = 0.2 + 0.8 * math.random(), 0.2 + 0.8 * math.random(), 0.2 + 0.8 * math.random()
     local x, y = math.random(40, 800 - 40), math.random(40, 450 - 40)
-    self:send({ kind = 'addPlayer' }, clientId, x, y)
+    self:send({ kind = 'addPlayer' }, clientId, x, y, r, g, b)
 end
 
 function GameServer:disconnect(clientId)

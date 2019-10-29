@@ -61,6 +61,9 @@ function GameClient.receivers:fullState(time, state)
 
     -- Read bullets
     self.bullets = state.bullets
+
+    -- Read walls
+    self.walls = state.walls
 end
 
 function GameClient.receivers:bulletPosition(time, bulletId, x, y)
@@ -131,6 +134,11 @@ end
 -- Draw
 
 function GameClient:draw()
+    -- Not connected?
+    if not self.connected then
+        return
+    end
+
     -- Draw players
     love.graphics.setColor(1, 1, 1)
     for clientId, player in pairs(self.players) do
@@ -150,8 +158,19 @@ function GameClient:draw()
     end
 
     -- Draw bullets
-    love.graphics.setColor(1, 1, 1)
     for bulletId, bullet in pairs(self.bullets) do
+        local player = self.players[bullet.clientId]
+        if player then
+            love.graphics.setColor(player.r, player.g, player.b)
+        else
+            love.graphics.setColor(1, 1, 1)
+        end
         love.graphics.circle('fill', bullet.x, bullet.y, BULLET_RADIUS)
+    end
+
+    -- Draw walls
+    love.graphics.setColor(1, 1, 1)
+    for wallId, wall in pairs(self.walls) do
+        love.graphics.rectangle('fill', wall.x, wall.y, wall.width, wall.height)
     end
 end

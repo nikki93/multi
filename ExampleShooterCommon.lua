@@ -9,6 +9,9 @@ BULLET_SPEED = 700
 BULLET_LIFETIME = 1.5
 BULLET_RADIUS = 5
 
+MIN_WALL_SIZE = 30
+MAX_WALL_SIZE = 150
+
 
 -- Define
 
@@ -99,11 +102,14 @@ function GameCommon.receivers:me(time, clientId, me)
     self.mes[clientId] = me
 end
 
-function GameCommon.receivers:addPlayer(time, clientId, x, y)
+function GameCommon.receivers:addPlayer(time, clientId, x, y, r, g, b)
     local player = {
         clientId = clientId,
         x = x,
         y = y,
+        r = r,
+        g = g,
+        b = b,
     }
 
     if self.clientId == clientId then
