@@ -8,7 +8,7 @@
 
 ## Methods you implement
 
-### `:defineMessageKinds`
+### `:define`
 
 ### `:start`
 
