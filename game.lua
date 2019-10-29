@@ -282,34 +282,40 @@ end
 -- Receivers
 
 function Game.receivers:fullState(time, state)
-    local dt = self.time - time
-
     self.players = state.players
-    for clientId, player in pairs(self.players) do
-        player.x, player.y = player.x + player.vx * dt, player.y + player.vy * dt
-    end
 end
 
 function Game.receivers:addPlayer(time, clientId, x, y)
-    self.players[clientId] = {
+    local player = {
+        clientId = clientId,
         x = x,
         y = y,
-        vx = 0,
-        vy = 0,
     }
+
+    if self.client and clientId == self.clientId then
+        -- Own player -- keep velocity
+        player.vx, player.vy = 0, 0
+    else
+        -- Other's player -- keep position history
+        player.positions = {}
+    end
+
+    self.players[clientId] = player
 end
 
 function Game.receivers:removePlayer(time, clientId)
     self.players[clientId] = nil
 end
 
-function Game.receivers:playerPositionVelocity(time, clientId, x, y, vx, vy)
-    local dt = self.time - time
-
+function Game.receivers:playerPosition(time, clientId, x, y)
     local player = self.players[clientId]
     if player then -- May arrive before `addPlayer` since it's on a different channel
-        player.x, player.y = x + vx * dt, y + vy * dt
-        player.vx, player.vy = vx, vy
+        -- Insert into position history
+        table.insert(player.positions, {
+            time = time,
+            x = x,
+            y = y,
+        })
     end
 end
 
@@ -324,7 +330,7 @@ function Game:update(dt)
         return
     end
 
-    -- Own player input
+    -- Move own player directly and send updates
     if self.client then
         local ownPlayer = self.players[self.clientId]
         if ownPlayer then
@@ -341,25 +347,37 @@ function Game:update(dt)
             if love.keyboard.isDown('down') or love.keyboard.isDown('s') then
                 ownPlayer.vy = ownPlayer.vy + PLAYER_SPEED
             end
-        end
-    end
 
-    -- All players motion
-    for clientId, player in pairs(self.players) do
-        player.x, player.y = player.x + player.vx * dt, player.y + player.vy * dt
-    end
+            ownPlayer.x, ownPlayer.y = ownPlayer.x + ownPlayer.vx * dt, ownPlayer.y + ownPlayer.vy * dt
 
-    -- Send own player position and velocity
-    if self.client then
-        local ownPlayer = self.players[self.clientId]
-        if ownPlayer then
             self:send({
-                kind = 'playerPositionVelocity',
+                kind = 'playerPosition',
                 self = false,
                 reliable = false,
                 channel = 1,
                 forward = true,
-            }, self.clientId, ownPlayer.x, ownPlayer.y, ownPlayer.vx, ownPlayer.vy)
+            }, self.clientId, ownPlayer.x, ownPlayer.y)
+        end
+    end
+
+    -- Interpolate others' players' positions based on history
+    local displayTime = self.time - 0.2
+    for clientId, player in pairs(self.players) do
+        if not (self.client and player.clientId == self.clientId) then
+            local positions = player.positions
+            while #positions >= 2 and positions[1].time < displayTime and positions[2].time < displayTime do
+                -- Remove unnecessary positions
+                table.remove(positions, 1)
+            end
+            if #positions >= 2 then
+                -- Interpolate
+                local f = (displayTime - positions[1].time) / (positions[2].time - positions[1].time)
+                local dx, dy = positions[2].x - positions[1].x, positions[2].y - positions[1].y
+                player.x, player.y = positions[1].x + f * dx, positions[1].y + f * dy
+            elseif #positions == 1 then
+                -- Set
+                player.x, player.y = positions[1].x, positions[1].y
+            end
         end
     end
 end
@@ -368,6 +386,7 @@ end
 -- Draw
 
 function Game:draw()
+    -- Draw players
     for clientId, player in pairs(self.players) do
         love.graphics.rectangle('fill', player.x - 20, player.y - 20, 40, 40)
     end
