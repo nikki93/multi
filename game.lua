@@ -224,6 +224,8 @@ end
 -- Game
 --
 
+-- Start / stop
+
 function Game:start()
     self.players = {}
 end
@@ -231,6 +233,8 @@ end
 function Game:stop()
 end
 
+
+-- Connect / disconnect
 
 function Game:connect(clientId)
     if self.server then
@@ -275,6 +279,8 @@ function Game:disconnect(clientId)
 end
 
 
+-- Receivers
+
 function Game.receivers:fullState(time, state)
     local dt = self.time - time
 
@@ -305,6 +311,8 @@ function Game.receivers:playerPositionVelocity(time, clientId, x, y, vx, vy)
     player.vx, player.vy = vx, vy
 end
 
+
+-- Update
 
 local PLAYER_SPEED = 200
 
@@ -354,6 +362,8 @@ function Game:update(dt)
     end
 end
 
+
+-- Draw
 
 function Game:draw()
     for clientId, player in pairs(self.players) do
