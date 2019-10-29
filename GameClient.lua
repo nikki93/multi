@@ -1,3 +1,9 @@
+require 'client'
+
+
+require 'GameCommon'
+
+
 -- Start / stop
 
 function GameClient:start()
@@ -27,13 +33,7 @@ function GameClient:connect()
 
     -- Send `me`
     local me = castle.user.getMe()
-    self:send({
-        kind = 'me',
-        channel = 0,
-        reliable = true,
-        self = true,
-        forward = true,
-    }, self.clientId, me)
+    self:send({ kind = 'me' }, self.clientId, me)
 end
 
 
@@ -98,13 +98,7 @@ function GameClient:update(dt)
 
     -- Send own player position
     if ownPlayer then
-        self:send({
-            kind = 'playerPosition',
-            self = false,
-            reliable = false,
-            channel = 1,
-            forward = true,
-        }, self.clientId, ownPlayer.x, ownPlayer.y)
+        self:send({ kind = 'playerPosition' }, self.clientId, ownPlayer.x, ownPlayer.y)
     end
 end
 

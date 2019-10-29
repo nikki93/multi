@@ -1,3 +1,3 @@
 USE_LOCAL_SERVER = true
-require 'server'
-require 'client'
+require 'GameServer'
+require 'GameClient'

@@ -1,16 +1,50 @@
+-- Define
+
+function GameCommon:define()
+    -- Server sends full state to a new client when it connects
+    self:defineMessageKind('fullState', {
+        channel = 0,
+        reliable = true,
+        selfSend = false,
+    })
+
+    -- Client sends user profile info when it connects, forwarded to all and self
+    self:defineMessageKind('me', {
+        channel = 0,
+        reliable = true,
+        selfSend = true,
+        forward = true,
+    })
+
+    -- Server sends add or remove player events to all
+    self:defineMessageKind('addPlayer', {
+        to = 'all',
+        channel = 0,
+        reliable = true,
+        selfSend = true,
+    })
+    self:defineMessageKind('removePlayer', {
+        to = 'all',
+        channel = 0,
+        reliable = true,
+        selfSend = true,
+    })
+
+    -- Client sends position updates for its own player, forwarded to all
+    self:defineMessageKind('playerPosition', {
+        reliable = false,
+        channel = 1,
+        selfSend = false,
+        forward = true,
+    })
+end
+
+
 -- Start / stop
 
 function GameCommon:start()
     self.players = {}
     self.mes = {}
-
-    self:defineMessageKind('fullState')
-
-    self:defineMessageKind('me')
-
-    self:defineMessageKind('addPlayer')
-    self:defineMessageKind('removePlayer')
-    self:defineMessageKind('playerPosition')
 end
 
 
@@ -27,7 +61,7 @@ function GameCommon.receivers:addPlayer(time, clientId, x, y)
         y = y,
     }
 
-    if self.client and clientId == self.clientId then
+    if self.clientId == clientId then
         -- Own player -- direct motion with velocity
         player.own = true
         player.vx, player.vy = 0, 0
@@ -63,21 +97,23 @@ local PLAYER_SPEED = 200
 
 function GameCommon:update(dt)
     -- Interpolate players' positions based on history
-    local interpolatedTime = self.time - 0.2 -- interpolated players are slightly in the past
+    local interpTime = self.time - 0.2 -- Interpolated players are slightly in the past
     for clientId, player in pairs(self.players) do
-        if not player.own then -- Own player is moved directly by us, no interpolation
+        if not player.own then -- Own player is directly moved, not interpolated
             local positions = player.positions
-            while #positions >= 2 and positions[1].time < interpolatedTime and positions[2].time < interpolatedTime do
-                -- Remove unnecessary positions
+
+            -- Remove position if next one is also before interpolation time -- we need one before and one after
+            while #positions >= 2 and positions[1].time < interpTime and positions[2].time < interpTime do
                 table.remove(positions, 1)
             end
+
             if #positions >= 2 then
-                -- Interpolate
-                local f = (interpolatedTime - positions[1].time) / (positions[2].time - positions[1].time)
+                -- Have one before and one after, interpolate
+                local f = (interpTime - positions[1].time) / (positions[2].time - positions[1].time)
                 local dx, dy = positions[2].x - positions[1].x, positions[2].y - positions[1].y
                 player.x, player.y = positions[1].x + f * dx, positions[1].y + f * dy
             elseif #positions == 1 then
-                -- Set
+                -- Have only one before, just set
                 player.x, player.y = positions[1].x, positions[1].y
             end
         end

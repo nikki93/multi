@@ -2,12 +2,10 @@ clientServer = require 'https://raw.githubusercontent.com/castle-games/share.lua
 
 
 require 'game'
-require 'GameCommon'
-require 'GameServer'
 
 
 local server = clientServer.server
-server.numChannels = 200
+server.numChannels = NUM_CHANNELS
 
 if USE_LOCAL_SERVER then
     server.enabled = true

@@ -1,6 +1,9 @@
 Game = {}
 
 
+NUM_CHANNELS = NUM_CHANNELS or 200
+
+
 local PriorityQueue = require 'https://raw.githubusercontent.com/Roblox/Wiki-Lua-Libraries/776a48bd1562c7df557a92e3ade6544efa5b031b/StandardLibraries/PriorityQueue.lua'
 
 
@@ -47,8 +50,15 @@ function Game:_init(opts)
 
     self.nextKindNum = 1
     self.kindToNum, self.numToKind = {}, {}
+    self.kindDefaults = {}
 
-    self:defineMessageKind('_initial')
+    self:defineMessageKind('_initial', {
+        reliable = true,
+        channel = 0,
+        selfSend = false,
+    })
+
+    self:define()
 
     self:start()
 end
@@ -57,11 +67,8 @@ function Game:_connect(clientId)
     if self.server then
         self.clientIds[clientId] = true
         self:send({
-            clientId = clientId,
+            to = clientId,
             kind = '_initial',
-            reliable = true,
-            channel = 0,
-            self = false,
         }, self.time)
         self:connect(clientId)
     end
@@ -90,7 +97,7 @@ function Game:_disconnect(clientId)
 end
 
 
-function Game:defineMessageKind(kind)
+function Game:defineMessageKind(kind, defaults)
     assert(not self.kindToNum[kind], "kind '" .. kind .. "' already defined")
 
     local kindNum = self.nextKindNum
@@ -98,38 +105,34 @@ function Game:defineMessageKind(kind)
 
     self.kindToNum[kind] = kindNum
     self.numToKind[kindNum] = kind
+
+    self.kindDefaults[kind] = defaults
 end
 
--- 
--- opts = {
---     kind = <string -- kind, must have a receiver defined>
---     self = <boolean -- whether to send to self>
---     reliable = <boolean -- whether this message MUST be received by the other end>
---     channel = <number -- messages are ordered within channels>
---     [CLIENT] forward = false <boolean -- whether server should forward this message to other clients when it receives it>
---     [SERVER] clientId = <number -- which client to send this message to, or 'all' if all>
--- }
---
 function Game:send(opts, ...)
     local kind = opts.kind
     assert(type(kind) == 'string', 'send: `kind` needs to be a string')
     local kindNum = assert(self.kindToNum[kind], "no receiver for kind '" .. kind .. "'")
 
-    local reliable = opts.reliable
+    local defaults = self.kindDefaults[kind]
+
+    local reliable = opts.reliable or defaults.reliable
     assert(type(reliable) == 'boolean', 'send: `reliable` needs to be a boolean')
     local flag = reliable and 'reliable' or 'unreliable'
 
-    local channel = opts.channel
+    local channel = opts.channel or defaults.channel
     assert(type(channel) == 'number', 'send: `channel` needs to be a number')
+    assert(0 <= channel and channel < NUM_CHANNELS, 'send: `channel` out of range')
 
     if reliable or self.sendUnreliables then
         if self.server then
-            local clientId = opts.clientId
-            assert(type(clientId) == 'number' or clientId == 'all', "send: `clientId` needs to be a number or 'all'")
-            self.server.sendExt(clientId, channel, flag, kindNum, self.time, false, nil, nil, ...)
+            local to = opts.to or defaults.to
+            assert(type(to) == 'number' or to == 'all', "send: `to` needs to be a number or 'all'")
+            self.server.sendExt(to, channel, flag, kindNum, self.time, false, nil, nil, ...)
         end
         if self.client then
-            local forward = opts.forward == true
+            local forward = (opts.forward == true) or defaults.forward
+            assert(type(forward) == 'boolean', 'send: `forward` needs to be a boolean')
             if forward then
                 self.client.sendExt(channel, flag, kindNum, self.time, true, channel, reliable, ...)
             else
@@ -138,8 +141,9 @@ function Game:send(opts, ...)
         end
     end
 
-    assert(type(opts.self) == 'boolean', 'send: `self` needs to be a boolean')
-    if opts.self then
+    local selfSend = (opts.selfSend == true) or defaults.selfSend
+    assert(type(selfSend) == 'boolean', 'send: `self` needs to be a boolean')
+    if selfSend then
         self:_receive(self.clientId, kindNum, self.time, false, nil, nil, ...)
     end
 end
@@ -227,6 +231,9 @@ end
 --
 -- Default events
 --
+
+function Game:define()
+end
 
 function Game:start()
 end
