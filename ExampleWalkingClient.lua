@@ -1,7 +1,7 @@
 require 'lib.client' -- You would use the full 'https://...' raw URI to 'client.lua' here
 
 
-require 'GameCommon'
+require 'ExampleWalkingCommon'
 
 
 -- Start / stop
