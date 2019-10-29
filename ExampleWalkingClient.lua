@@ -112,7 +112,7 @@ function GameClient:draw()
     for clientId, player in pairs(self.players) do
         if self.photos[clientId] then
             local photo = self.photos[clientId]
-            love.graphics.draw(photo, player.x - 20, player.y - 20, 0, 40 / image:getWidth(), 40 / image:getHeight())
+            love.graphics.draw(photo, player.x - 20, player.y - 20, 0, 40 / photo:getWidth(), 40 / photo:getHeight())
         else
             love.graphics.rectangle('fill', player.x - 20, player.y - 20, 40, 40)
         end
