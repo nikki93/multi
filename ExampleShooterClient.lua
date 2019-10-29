@@ -143,6 +143,11 @@ function GameClient:update(dt)
         end
     end
 
+    -- Move bullets, no collision check (server handles bullet collisions)
+    for bulletId, bullet in pairs(self.bullets) do
+        bullet.x, bullet.y = bullet.x + bullet.vx * dt, bullet.y + bullet.vy * dt
+    end
+
     -- Do common update
     GameCommon.update(self, dt)
 
@@ -189,7 +194,7 @@ function GameClient:draw()
         else
             love.graphics.setColor(1, 1, 1)
         end
-        love.graphics.circle('fill', bullet.x, bullet.y, BULLET_RADIUS)
+        love.graphics.circle('fill', bullet.x, bullet.y, BULLET_DRAW_RADIUS)
     end
 
     -- Draw walls

@@ -5,9 +5,10 @@ PLAYER_SPEED = 170
 PLAYER_SIZE = 30
 
 SHOOT_RATE = 5
-BULLET_SPEED = 700
+BULLET_SPEED = 1200
 BULLET_LIFETIME = 1.5
-BULLET_RADIUS = 5
+BULLET_RADIUS = 2.5
+BULLET_DRAW_RADIUS = 3
 
 MIN_WALL_SIZE = 30
 MAX_WALL_SIZE = 150
@@ -128,7 +129,7 @@ end
 
 function GameCommon.receivers:addPlayer(time, clientId, x, y, r, g, b)
     local player = {
-        type = 'bullet',
+        type = 'player',
         clientId = clientId,
         x = x,
         y = y,
@@ -233,12 +234,7 @@ function GameCommon:update(dt)
                 player.x, player.y = history[1].x + history[1].vx * idt, history[1].y + history[1].vy * idt
             end
 
-            self.bumpWorld:update(player, player.x, player.y)
+            self.bumpWorld:update(player, player.x - 0.5 * PLAYER_SIZE, player.y - 0.5 * PLAYER_SIZE)
         end
-    end
-
-    -- Move bullets
-    for bulletId, bullet in pairs(self.bullets) do
-        bullet.x, bullet.y = bullet.x + bullet.vx * dt, bullet.y + bullet.vy * dt
     end
 end

@@ -28,13 +28,18 @@ function GameServer:start()
         end
 
         local wallId = self:generateId()
-        self.walls[wallId] = {
+
+        local wall = {
             type = 'wall',
             x = math.min(x1, x2),
             y = math.min(y1, y2),
             width = width,
             height = height,
         }
+
+        self.walls[wallId] = wall
+
+        self:addWallBump(wall)
     end
 end
 
@@ -54,8 +59,20 @@ function GameServer:connect(clientId)
     })
 
     -- Add player for new client
-    local r, g, b = 0.2 + 0.8 * math.random(), 0.2 + 0.8 * math.random(), 0.2 + 0.8 * math.random()
-    local x, y = math.random(40, 800 - 40), math.random(40, 450 - 40)
+
+    local r, g, b = 0.4 + 0.8 * math.random(), 0.4 + 0.8 * math.random(), 0.4 + 0.8 * math.random()
+
+    local x, y
+    while true do
+        x, y = math.random(40, 800 - 40), math.random(40, 450 - 40)
+        local hits = self.bumpWorld:queryRect(
+            x - 0.5 * PLAYER_SIZE, y - 0.5 * PLAYER_SIZE,
+            PLAYER_SIZE, PLAYER_SIZE)
+        if #hits == 0 then
+            break
+        end
+    end
+
     self:send({ kind = 'addPlayer' }, clientId, x, y, r, g, b)
 end
 
@@ -97,6 +114,27 @@ function GameServer:update(dt)
         bullet.timeLeft = bullet.timeLeft - dt
         if bullet.timeLeft <= 0 then
             self:send({ kind = 'removeBullet' }, bulletId)
+        end
+    end
+
+    -- Move bullets, checking collisions
+    for bulletId, bullet in pairs(self.bullets) do
+        local targetX, targetY = bullet.x + bullet.vx * dt, bullet.y + bullet.vy * dt
+        local bumpX, bumpY, cols = self.bumpWorld:move(
+            bullet,
+            targetX - BULLET_RADIUS, targetY - BULLET_RADIUS,
+            function(_, other)
+                return 'cross'
+            end)
+        bullet.x, bullet.y = bumpX + BULLET_RADIUS, bumpY + BULLET_RADIUS
+
+        for _, col in ipairs(cols) do
+            local other = col.other
+            if other.type == 'wall' then
+                self:send({ kind = 'removeBullet' }, bulletId)
+            elseif other.type == 'player' and other.clientId ~= bullet.clientId then
+                self:send({ kind = 'removeBullet' }, bulletId)
+            end
         end
     end
 
