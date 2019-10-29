@@ -4,6 +4,10 @@ Each example has a common module ('...Common.lua'), a server module ('...Server.
 
 ## Walking example
 
+In this example players occupy the same space and can walk around and see each other walking around in real-time. A client moves its own player object directly. Player objects of other clients are interpolated based on a history of past positions received. This interpolation behavior also happens on the server. Each player is rendered using their Castle avatar.
+
+## Shooter example
+
 # Reference
 
 ## Module layout
