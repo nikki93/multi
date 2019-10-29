@@ -8,9 +8,13 @@ Each example has a common module ('...Common.lua'), a server module ('...Server.
 
 ## Module layout
 
-You must have separate client and server modules that you specify as `main: ` and `serverMain: ` in your project's '.castle' file. The client module must `require` the 'lib/client.lua' file in this repository, while the server module must `require` the 'lib/server.lua' file. The globals `GameCommon` and `GameClient` will become available on the client, and `GameCommon` and `GameServer` will be available on the server. You implement methods in these tables to define your game. The methods you implement are listed under the 'Methods you implement' heading below.
+You must have separate client and server modules that you specify as `main: ` and `serverMain: ` in your project's '.castle' file ([the `serverMain: ` key appears under the `multiplayer: ` key](https://castle.games/documentation/reference/castle-project-file-reference)).
 
-In implemented methods, you can methods on `self` that are pre-defined by the library to send messages or define message types. These are listed under the 'Methods you call' heading below.
+The client module must `require` the 'lib/client.lua' file in this repository, while the server module must `require` the 'lib/server.lua' file. You can `require` them using direct 'https://...' URIs as is possible in Castle. The globals `GameCommon` and `GameClient` will become available on the client, and `GameCommon` and `GameServer` will be available on the server.
+
+You implement methods in `GameCommon`, `GameClient` and `GameServer` to define your game. The methods you implement are listed under the 'Methods you implement' heading below. In any implemented method, `GameClient` or `GameServer` can call the `GameCommon` version using `GameCommon.<methodName>(self, ...)`, passing along all of the arguments that it received (it is free to pass in different arguments too).
+
+In your methods, you can call methods on `self` that are pre-defined by the library. These are listed under the 'Methods you call' heading below.
 
 ## Methods you call
 
