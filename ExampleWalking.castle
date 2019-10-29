@@ -1,0 +1,7 @@
+main: ExampleWalkingClient.lua
+multiplayer:
+    enabled: true
+    serverMain: ExampleWalkingServer.lua
+title: Multiplayer walking example
+owner: nikki
+description: Walking example for my multiplayer library

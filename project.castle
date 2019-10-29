@@ -1,7 +1,0 @@
-main: GameClient.lua
-multiplayer:
-    enabled: true
-    serverMain: GameServer.lua
-title: Multiplayer tests
-owner: nikki
-description: Testing various multiplayer things
