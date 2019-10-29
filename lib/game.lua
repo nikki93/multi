@@ -32,10 +32,6 @@ function Game:_init(opts)
         self.connected = false
     end
 
-    self.sendUnreliables = false
-    self.sendUnreliablesRate = 35
-    self.lastSentUnreliables = nil
-
     self.pendingReceives = PriorityQueue.new(function(a, b)
         -- Priority is `{ time, receiveSequenceNum }` so time-ties are broken sequentially
         if a[1] > b[1] then
@@ -51,6 +47,8 @@ function Game:_init(opts)
     self.nextKindNum = 1
     self.kindToNum, self.numToKind = {}, {}
     self.kindDefaults = {}
+
+    self.kindThrottles = {} -- `kind` -> `{ period, timeSinceLastSend }`
 
     self:defineMessageKind('_initial', {
         reliable = true,
@@ -107,6 +105,12 @@ function Game:defineMessageKind(kind, defaults)
     self.numToKind[kindNum] = kind
 
     self.kindDefaults[kind] = defaults
+
+    local period = 1 / math.max(0, math.min(defaults.rate or 35, 35))
+    self.kindThrottles[kind] = {
+        period = period,
+        timeSinceLastSend = period * math.random(),
+    }
 end
 
 function Game:send(opts, ...)
@@ -124,7 +128,17 @@ function Game:send(opts, ...)
     assert(type(channel) == 'number', 'send: `channel` needs to be a number')
     assert(0 <= channel and channel < NUM_CHANNELS, 'send: `channel` out of range')
 
-    if reliable or self.sendUnreliables then
+    local shouldSend
+    if reliable then
+        shouldSend = true
+    else
+        local throttle = self.kindThrottles[kind]
+        if throttle.timeSinceLastSend > throttle.period then
+            shouldSend = true
+        end
+    end
+
+    if shouldSend then
         if self.server then
             local to = opts.to or defaults.to
             assert(type(to) == 'number' or to == 'all', "send: `to` needs to be a number or 'all'")
@@ -176,9 +190,6 @@ end
 function Game:_callReceiver(kindNum, time, ...)
     local kind = assert(self.numToKind[kindNum], 'receive: bad `kindNum`')
 
-    if self.receive then
-        self:receive(kind, time, ...)
-    end
     local receiver = self.receivers[kind]
     if receiver then
         receiver(self, time, ...)
@@ -187,14 +198,13 @@ end
 
 
 function Game:_update(dt)
-    -- Periodically enable sending unreliable messages
-    if self.sendUnreliables then
-        self.sendUnreliables = false
-        self.lastSentUnreliables = love.timer.getTime()
-    else
-        if not self.lastSentUnreliables or love.timer.getTime() - self.lastSentUnreliables > 1 / self.sendUnreliablesRate then
-            self.sendUnreliables = true
+    -- Manage throttling
+    for kind, throttle in pairs(self.kindThrottles) do
+        if throttle.timeSinceLastSend > throttle.period then
+            -- Sending was enabled last frame, so reset
+            throttle.timeSinceLastSend = 0
         end
+        throttle.timeSinceLastSend = throttle.timeSinceLastSend + dt
     end
 
     -- Let time pass

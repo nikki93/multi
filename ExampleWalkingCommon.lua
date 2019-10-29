@@ -36,6 +36,7 @@ function GameCommon:define()
         channel = 1,
         selfSend = false,
         forward = true,
+        rate = 20,
     })
 end
 
