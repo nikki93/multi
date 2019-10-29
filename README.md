@@ -1,6 +1,6 @@
 # Examples
 
-Each example has a common, a server, a client file, and also a launch file for a local server.
+Each example has a common module ('...Common.lua'), a server module ('...Server.lua'), a client module ('...Client.lua'). The examples can be launched on a remote server by running opening the '.castle' file in Castle, or with a local server session by opening the '...Local.lua' file in Castle.
 
 ## Walking
 
@@ -23,3 +23,5 @@ Each example has a common, a server, a client file, and also a launch file for a
 ### `:connect`
 
 ### `:disconnect`
+
+### `.receivers:<messageKind>`
