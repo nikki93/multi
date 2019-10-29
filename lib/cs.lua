@@ -1,5 +1,4 @@
-local enet = require 'enet' -- Network
--- local marshal = require 'marshal' -- Serialization
+local enet = require 'enet'
 local serpent = require 'https://raw.githubusercontent.com/pkulchenko/serpent/522a6239f25997b101c585c0daf6a15b7e37fad9/src/serpent.lua'
 local bitser = require 'https://raw.githubusercontent.com/gvx/bitser/214ad35f62d5abbc0c9a421287aa0964f6f63003/bitser.lua'
 
@@ -273,34 +272,6 @@ do
                     -- Message?
                     if request[1] and client.receive then
                         client.receive(unpack(request, 2, request[1] + 1))
-                    end
-
-                    -- Diff / exact? (do this first so we have it in `.connect` below)
-                    if request.diff then
-                        if client.changing then
-                            client.changing(request.diff)
-                        end
-                        assert(state.apply(share, request.diff) == share)
-                        if client.changed then
-                            client.changed(request.diff)
-                        end
-                    end
-                    if request.exact then -- `state.apply` may return a new value
-                        if client.changing then
-                            client.changing(request.exact)
-                        end
-                        local new = state.apply(share, request.exact)
-                        for k, v in pairs(new) do
-                            share[k] = v
-                        end
-                        for k in pairs(share) do
-                            if not new[k] then
-                                share[k] = nil
-                            end
-                        end
-                        if client.changed then
-                            client.changed(request.exact)
-                        end
                     end
 
                     -- Id?
