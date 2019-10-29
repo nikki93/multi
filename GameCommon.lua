@@ -66,9 +66,9 @@ function GameCommon.receivers:addPlayer(time, clientId, x, y)
         player.own = true
         player.vx, player.vy = 0, 0
     else
-        -- Other's player -- position history with interpolation
+        -- Other's player -- motion history with interpolation
         player.own = false
-        player.positions = {}
+        player.history = {}
     end
 
     self.players[clientId] = player
@@ -82,7 +82,7 @@ function GameCommon.receivers:playerPositionVelocity(time, clientId, x, y, vx, v
     local player = self.players[clientId]
     if player then
         assert(not player.own, 'received `playerPositionVelocity` for own player')
-        table.insert(player.positions, {
+        table.insert(player.history, {
             time = time,
             x = x,
             y = y,
@@ -102,22 +102,22 @@ function GameCommon:update(dt)
     local interpTime = self.time - 0.2 -- Interpolated players are slightly in the past
     for clientId, player in pairs(self.players) do
         if not player.own then -- Own player is directly moved, not interpolated
-            local positions = player.positions
+            local history = player.history
 
             -- Remove position if next one is also before interpolation time -- we need one before and one after
-            while #positions >= 2 and positions[1].time < interpTime and positions[2].time < interpTime do
-                table.remove(positions, 1)
+            while #history >= 2 and history[1].time < interpTime and history[2].time < interpTime do
+                table.remove(history, 1)
             end
 
-            if #positions >= 2 then
+            if #history >= 2 then
                 -- Have one before and one after, interpolate
-                local f = (interpTime - positions[1].time) / (positions[2].time - positions[1].time)
-                local dx, dy = positions[2].x - positions[1].x, positions[2].y - positions[1].y
-                player.x, player.y = positions[1].x + f * dx, positions[1].y + f * dy
-            elseif #positions == 1 then
+                local f = (interpTime - history[1].time) / (history[2].time - history[1].time)
+                local dx, dy = history[2].x - history[1].x, history[2].y - history[1].y
+                player.x, player.y = history[1].x + f * dx, history[1].y + f * dy
+            elseif #history == 1 then
                 -- Have only one before, just extrapolate with velocity
-                local idt = interpTime - positions[1].time
-                player.x, player.y = positions[1].x + positions[1].vx * idt, positions[1].y + positions[1].vy * idt
+                local idt = interpTime - history[1].time
+                player.x, player.y = history[1].x + history[1].vx * idt, history[1].y + history[1].vy * idt
             end
         end
     end
