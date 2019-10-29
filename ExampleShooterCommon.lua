@@ -3,7 +3,7 @@ PLAYER_SIZE = 30
 
 SHOOT_RATE = 5
 BULLET_SPEED = 700
-BULLET_LIFETIME = 2
+BULLET_LIFETIME = 1.5
 BULLET_RADIUS = 5
 
 
@@ -136,14 +136,20 @@ end
 
 function GameCommon.receivers:addBullet(time, clientId, bulletId, x, y, vx, vy)
     local dt = self.time - time
-    self.bullets[bulletId] = {
+
+    local bullet = {
         clientId = clientId,
         x = x + vx * dt,
         y = y + vy * dt,
         vx = vx,
         vy = vy,
-        timeLeft = BULLET_LIFETIME,
     }
+
+    if self.server then
+        bullet.timeLeft = BULLET_LIFETIME
+    end
+
+    self.bullets[bulletId] = bullet
 end
 
 function GameCommon.receivers:removeBullet(time, bulletId)
