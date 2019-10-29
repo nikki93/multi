@@ -10,7 +10,7 @@ function GameClient:start()
     GameCommon.start(self)
 
     -- Client-local data
-    self.photoImages = {}
+    self.photos = {}
 end
 
 
@@ -20,7 +20,7 @@ function GameClient:loadPhoto(clientId)
     local photoUrl = self.mes[clientId].photoUrl
     if photoUrl then
         network.async(function()
-            self.photoImages[clientId] = love.graphics.newImage(photoUrl)
+            self.photos[clientId] = love.graphics.newImage(photoUrl)
         end)
     end
 end
@@ -110,9 +110,9 @@ end
 function GameClient:draw()
     -- Draw players
     for clientId, player in pairs(self.players) do
-        if self.photoImages[clientId] then
-            local image = self.photoImages[clientId]
-            love.graphics.draw(image, player.x - 20, player.y - 20, 0, 40 / image:getWidth(), 40 / image:getHeight())
+        if self.photos[clientId] then
+            local photo = self.photos[clientId]
+            love.graphics.draw(photo, player.x - 20, player.y - 20, 0, 40 / image:getWidth(), 40 / image:getHeight())
         else
             love.graphics.rectangle('fill', player.x - 20, player.y - 20, 40, 40)
         end
