@@ -1,4 +1,4 @@
-local Game = {}
+Game = {}
 
 
 local PriorityQueue = require 'https://raw.githubusercontent.com/Roblox/Wiki-Lua-Libraries/776a48bd1562c7df557a92e3ade6544efa5b031b/StandardLibraries/PriorityQueue.lua'
@@ -7,6 +7,11 @@ local PriorityQueue = require 'https://raw.githubusercontent.com/Roblox/Wiki-Lua
 --
 -- Framework
 --
+
+function Game:_new()
+    return setmetatable({}, { __index = self })
+end
+
 
 Game.receivers = {}
 
@@ -218,6 +223,21 @@ function Game:_update(dt)
 
     self:update(dt)
 end
+
+
+--
+-- Inheriters
+--
+
+GameCommon = setmetatable({}, { __index = Game })
+
+GameServer = setmetatable({
+    receivers = setmetatable({}, { __index = GameCommon.receivers })
+}, { __index = GameCommon })
+
+GameClient = setmetatable({
+    receivers = setmetatable({}, { __index = GameCommon.receivers })
+}, { __index = GameCommon })
 
 
 --
@@ -439,6 +459,3 @@ function Game:draw()
         end
     end
 end
-
-
-return Game

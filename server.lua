@@ -1,4 +1,10 @@
-require 'common'
+clientServer = require 'https://raw.githubusercontent.com/castle-games/share.lua/6d70831ea98c57219f2aa285b4ad7bf7156f7c03/cs.lua'
+
+
+require 'game'
+require 'GameCommon'
+require 'GameServer'
+
 
 local server = clientServer.server
 server.numChannels = 200
@@ -11,7 +17,7 @@ else
 end
 
 
-local game = newGame()
+local game = GameServer:_new()
 
 
 function server.load()
