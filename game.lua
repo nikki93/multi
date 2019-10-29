@@ -307,8 +307,10 @@ function Game.receivers:playerPositionVelocity(time, clientId, x, y, vx, vy)
     local dt = self.time - time
 
     local player = self.players[clientId]
-    player.x, player.y = x + vx * dt, y + vy * dt
-    player.vx, player.vy = vx, vy
+    if player then -- May arrive before `addPlayer` since it's on a different channel
+        player.x, player.y = x + vx * dt, y + vy * dt
+        player.vx, player.vy = vx, vy
+    end
 end
 
 
