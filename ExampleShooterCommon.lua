@@ -55,6 +55,22 @@ function GameCommon:define()
         forward = true,
     })
 
+    -- Server sends player health updates to all
+    self:defineMessageKind('playerHealth', {
+        to = 'all',
+        reliable = true,
+        channel = 0,
+        selfSend = true,
+    })
+
+    -- Server sends player respawn events to all
+    self:defineMessageKind('respawnPlayer', {
+        to = 'all',
+        reliable = true,
+        channel = 0,
+        selfSend = true,
+    })
+
     -- Client sends shoot message to server when it wants to shoot a bullet
     self:defineMessageKind('shoot', {
         reliable = true,
@@ -136,6 +152,8 @@ function GameCommon.receivers:addPlayer(time, clientId, x, y, r, g, b)
         r = r,
         g = g,
         b = b,
+        health = 100,
+        spawnCount = 1,
     }
 
     if self.clientId == clientId then
@@ -161,19 +179,49 @@ function GameCommon.receivers:removePlayer(time, clientId)
     end
 end
 
-function GameCommon.receivers:playerPositionVelocity(time, clientId, x, y, vx, vy)
+function GameCommon.receivers:playerPositionVelocity(time, clientId, spawnCount, x, y, vx, vy)
     local player = self.players[clientId]
     if player then
         assert(not player.own, 'received `playerPositionVelocity` for own player')
 
-        -- Insert into history, we'll interpolate in `:update` below
-        table.insert(player.history, {
-            time = time,
-            x = x,
-            y = y,
-            vx = vx,
-            vy = vy,
-        })
+        if player.spawnCount == spawnCount then -- Make sure it's from this lifetime
+            -- Insert into history, we'll interpolate in `:update` below
+            table.insert(player.history, {
+                time = time,
+                x = x,
+                y = y,
+                vx = vx,
+                vy = vy,
+            })
+        end
+    end
+end
+
+function GameCommon.receivers:playerHealth(time, clientId, health)
+    local player = self.players[clientId]
+    if player then
+        player.health = health
+    end
+end
+
+function GameCommon.receivers:respawnPlayer(time, clientId, spawnCount, x, y)
+    local player = self.players[clientId]
+    if player then
+        player.spawnCount = spawnCount
+
+        player.x, player.y = x, y
+
+        self.bumpWorld:update(player, x - 0.5 * PLAYER_SIZE, y - 0.5 * PLAYER_SIZE)
+
+        if player.own then
+            -- Own player -- reset velocity
+            player.vx, player.vy = 0, 0
+        else
+            -- Other's player -- reset motion history
+            player.history = {}
+        end
+
+        player.health = 100
     end
 end
 

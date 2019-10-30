@@ -114,6 +114,8 @@ function GameClient:update(dt)
 
         -- Move with collision response
         local targetX, targetY = ownPlayer.x + ownPlayer.vx * dt, ownPlayer.y + ownPlayer.vy * dt
+        targetX = math.max(0.5 * PLAYER_SIZE, math.min(targetX, 800 - 0.5 * PLAYER_SIZE))
+        targetY = math.max(0.5 * PLAYER_SIZE, math.min(targetY, 450 - 0.5 * PLAYER_SIZE))
         local bumpX, bumpY, cols = self.bumpWorld:move(
             ownPlayer,
             targetX - 0.5 * PLAYER_SIZE, targetY - 0.5 * PLAYER_SIZE,
@@ -155,7 +157,7 @@ function GameClient:update(dt)
     if ownPlayer then
         self:send({
             kind = 'playerPositionVelocity',
-        }, self.clientId, ownPlayer.x, ownPlayer.y, ownPlayer.vx, ownPlayer.vy)
+        }, self.clientId, ownPlayer.spawnCount, ownPlayer.x, ownPlayer.y, ownPlayer.vx, ownPlayer.vy)
     end
 end
 
@@ -167,6 +169,9 @@ function GameClient:draw()
     if not self.connected then
         return
     end
+
+    -- Background
+    love.graphics.clear(0.2, 0.2, 0.2)
 
     -- Draw players
     love.graphics.setColor(1, 1, 1)

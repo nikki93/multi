@@ -44,6 +44,23 @@ function GameServer:start()
 end
 
 
+-- Utilities
+
+function GameServer:generatePlayerPosition()
+    local x, y
+    while true do
+        x, y = math.random(40, 800 - 40), math.random(40, 450 - 40)
+        local hits = self.bumpWorld:queryRect(
+            x - 0.5 * PLAYER_SIZE, y - 0.5 * PLAYER_SIZE,
+            PLAYER_SIZE, PLAYER_SIZE)
+        if #hits == 0 then
+            break
+        end
+    end
+    return x, y
+end
+
+
 -- Connect / disconnect
 
 function GameServer:connect(clientId)
@@ -61,18 +78,7 @@ function GameServer:connect(clientId)
     -- Add player for new client
 
     local r, g, b = 0.4 + 0.8 * math.random(), 0.4 + 0.8 * math.random(), 0.4 + 0.8 * math.random()
-
-    local x, y
-    while true do
-        x, y = math.random(40, 800 - 40), math.random(40, 450 - 40)
-        local hits = self.bumpWorld:queryRect(
-            x - 0.5 * PLAYER_SIZE, y - 0.5 * PLAYER_SIZE,
-            PLAYER_SIZE, PLAYER_SIZE)
-        if #hits == 0 then
-            break
-        end
-    end
-
+    local x, y = self:generatePlayerPosition()
     self:send({ kind = 'addPlayer' }, clientId, x, y, r, g, b)
 end
 
@@ -134,6 +140,15 @@ function GameServer:update(dt)
                 self:send({ kind = 'removeBullet' }, bulletId)
             elseif other.type == 'player' and other.clientId ~= bullet.clientId then
                 self:send({ kind = 'removeBullet' }, bulletId)
+
+                other.health = other.health - 20
+                if other.health > 0 then
+                    self:send({ kind = 'playerHealth' }, other.clientId, other.health)
+                else
+                    other.spawnCount = other.spawnCount + 1
+                    local newX, newY = self:generatePlayerPosition()
+                    self:send({ kind = 'respawnPlayer' }, other.clientId, other.spawnCount, newX, newY)
+                end
             end
         end
     end
