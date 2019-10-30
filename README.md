@@ -1,4 +1,6 @@
-![Shooter example](ExampleShooter.gif)
+<p align="center">
+  <img src="ExampleShooter.gif">
+</p>
 
 # Examples
 
