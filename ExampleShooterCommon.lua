@@ -145,6 +145,24 @@ function GameCommon:addWallBump(wall)
     self.bumpWorld:add(wall, wall.x, wall.y, wall.width, wall.height)
 end
 
+function GameCommon:walkPlayerTo(player, targetX, targetY)
+    targetX = math.max(0.5 * PLAYER_SIZE, math.min(targetX, 800 - 0.5 * PLAYER_SIZE))
+    targetY = math.max(0.5 * PLAYER_SIZE, math.min(targetY, 450 - 0.5 * PLAYER_SIZE))
+    local bumpX, bumpY, cols = self.bumpWorld:move(
+        player,
+        targetX - 0.5 * PLAYER_SIZE, targetY - 0.5 * PLAYER_SIZE,
+        function(_, other)
+            if other.type == 'player' then
+                return 'slide'
+            elseif other.type == 'wall' then
+                return 'slide'
+            elseif other.type == 'bullet' then
+                return 'cross'
+            end
+        end)
+    player.x, player.y = bumpX + 0.5 * PLAYER_SIZE, bumpY + 0.5 * PLAYER_SIZE
+end
+
 
 -- Receivers
 
@@ -278,7 +296,7 @@ local PLAYER_SPEED = 200
 
 function GameCommon:update(dt)
     -- Interpolate players' positions based on history
-    local interpTime = self.time - 0.1 -- Interpolated players are slightly in the past
+    local interpTime = self.time - 0.15 -- Interpolated players are slightly in the past
     for clientId, player in pairs(self.players) do
         if not player.own then -- Own player is directly moved, not interpolated
             local history = player.history
@@ -293,13 +311,13 @@ function GameCommon:update(dt)
                 local f = (interpTime - history[1].time) / (history[2].time - history[1].time)
                 local dx, dy = history[2].x - history[1].x, history[2].y - history[1].y
                 player.x, player.y = history[1].x + f * dx, history[1].y + f * dy
+                self.bumpWorld:update(player, player.x - 0.5 * PLAYER_SIZE, player.y - 0.5 * PLAYER_SIZE)
             elseif #history == 1 then
                 -- Have only one before, just extrapolate with velocity
                 local idt = interpTime - history[1].time
-                player.x, player.y = history[1].x + history[1].vx * idt, history[1].y + history[1].vy * idt
+                local targetX, targetY = history[1].x + history[1].vx * idt, history[1].y + history[1].vy * idt
+                self:walkPlayerTo(player, targetX, targetY)
             end
-
-            self.bumpWorld:update(player, player.x - 0.5 * PLAYER_SIZE, player.y - 0.5 * PLAYER_SIZE)
         end
     end
 end

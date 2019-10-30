@@ -115,21 +115,7 @@ function GameClient:update(dt)
 
         -- Move with collision response
         local targetX, targetY = ownPlayer.x + ownPlayer.vx * dt, ownPlayer.y + ownPlayer.vy * dt
-        targetX = math.max(0.5 * PLAYER_SIZE, math.min(targetX, 800 - 0.5 * PLAYER_SIZE))
-        targetY = math.max(0.5 * PLAYER_SIZE, math.min(targetY, 450 - 0.5 * PLAYER_SIZE))
-        local bumpX, bumpY, cols = self.bumpWorld:move(
-            ownPlayer,
-            targetX - 0.5 * PLAYER_SIZE, targetY - 0.5 * PLAYER_SIZE,
-            function(_, other)
-                if other.type == 'player' then
-                    return 'slide'
-                elseif other.type == 'wall' then
-                    return 'slide'
-                elseif other.type == 'bullet' then
-                    return 'cross'
-                end
-            end)
-        ownPlayer.x, ownPlayer.y = bumpX + 0.5 * PLAYER_SIZE, bumpY + 0.5 * PLAYER_SIZE
+        self:walkPlayerTo(ownPlayer, targetX, targetY)
     end
 
     -- Handle shooting
