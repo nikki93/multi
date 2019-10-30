@@ -44,7 +44,7 @@ function GameServer:start()
 
         self:addWallBump(wall)
     end
-    for wallId, wall in pairs(self.walls) do
+    for wallId, wall in pairs(self.walls) do -- Unify colors of overlapping walls
         local hits = self.bumpWorld:queryRect(
             wall.x, wall.y, wall.width, wall.height)
         for _, hit in ipairs(hits) do
