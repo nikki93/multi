@@ -8,6 +8,8 @@ In this example players occupy the same space and can walk around and see each o
 
 ## Shooter example
 
+This example builds on the walking example for player movement. Random rectangular walls are placed and [bump.lua](https://github.com/kikito/bump.lua) is used for collision detection and response. The server owns bullet motion and lifetime, players simply send a 'shoot' message to the server when they want to shoot. Player scores are also maintained and drawn.
+
 # Reference
 
 ## Module layout
