@@ -140,9 +140,8 @@ function GameClient:update(dt)
             self.shotTimer = 1 / SHOOT_RATE
 
             local mouseX, mouseY = love.mouse.getPosition()
-            local dirX, dirY = mouseX - ownPlayer.x, mouseY - ownPlayer.y
 
-            self:send({ kind = 'shoot' }, self.clientId, ownPlayer.x, ownPlayer.y, dirX, dirY)
+            self:send({ kind = 'shoot' }, self.clientId, ownPlayer.x, ownPlayer.y, mouseX,  mouseY)
         end
     end
 
