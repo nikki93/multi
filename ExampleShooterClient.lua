@@ -188,7 +188,15 @@ function GameClient:draw()
 
     effect(function()
         -- Background
-        love.graphics.clear(0.2, 0.2, 0.2)
+        local STRIP_WIDTH = 800 / 80
+        for i = 0, 800 / STRIP_WIDTH do
+            local t = 0.1 * i + 1.2 * love.timer.getTime()
+            love.graphics.setColor(
+                0.08 + 0.06 * (1 + math.sin(t)),
+                0.08 + 0.04 * (1 + math.sin(t + 0.4)),
+                0.08 + 0.06 * (1 + math.sin(t + 0.8)))
+            love.graphics.rectangle('fill', i * STRIP_WIDTH, 0, STRIP_WIDTH, 450)
+        end
 
         -- Draw players
         for clientId, player in pairs(self.players) do

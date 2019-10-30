@@ -35,9 +35,9 @@ function GameServer:start()
             y = math.min(y1, y2),
             width = width,
             height = height,
-            r = 0.4 + 0.6 * math.random(),
-            g = 0.4 + 0.6 * math.random(),
-            b = 0.4 + 0.6 * math.random(),
+            r = 0.6 + 0.3 * math.random(),
+            g = 0.6 + 0.3 * math.random(),
+            b = 0.6 + 0.3 * math.random(),
         }
 
         self.walls[wallId] = wall
