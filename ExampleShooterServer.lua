@@ -4,6 +4,27 @@ require 'lib.server' -- You would use the full 'https://...' raw URI to 'lib/ser
 require 'ExampleShooterCommon'
 
 
+-- Utilities
+
+local function roundTo(value, multiple)
+    return math.floor(value / multiple + 0.5) * multiple
+end
+
+function GameServer:generatePlayerPosition() -- Generate player position not overlapping anything
+    local x, y
+    while true do
+        x, y = math.random(40, 800 - 40), math.random(40, 450 - 40)
+        local hits = self.bumpWorld:queryRect(
+            x - 0.5 * PLAYER_SIZE, y - 0.5 * PLAYER_SIZE,
+            PLAYER_SIZE, PLAYER_SIZE)
+        if #hits == 0 then
+            break
+        end
+    end
+    return x, y
+end
+
+
 -- Start / stop
 
 function GameServer:start()
@@ -12,11 +33,11 @@ function GameServer:start()
     -- Generate walls
     self.walls = {}
     for i = 1, 8 do
-        local x1, y1 = math.random(0, 800), math.random(0, 450)
+        local x1, y1 = roundTo(math.random(0, 800), PLAYER_SIZE), roundTo(math.random(0, 450), PLAYER_SIZE)
         local x2, y2
         local width, height
         while true do
-            x2, y2 = math.random(0, 800), math.random(0, 450)
+            x2, y2 = roundTo(math.random(0, 800), PLAYER_SIZE), roundTo(math.random(0, 450), PLAYER_SIZE)
             width, height = math.abs(x1 - x2), math.abs(y1 - y2)
             local area = width * height
             if MIN_WALL_SIZE <= width and width <= MAX_WALL_SIZE and
@@ -44,32 +65,27 @@ function GameServer:start()
 
         self:addWallBump(wall)
     end
-    for wallId, wall in pairs(self.walls) do -- Unify colors of overlapping walls
+
+    -- Unify colors of touching walls
+    local wallOrder = {}
+    for wallId, wall in pairs(self.walls) do
+        table.insert(wallOrder, wall)
+    end
+    table.sort(wallOrder, function(w1, w2)
+        if w1.x == w2.x then
+            return w1.y < w2.y
+        end
+        return w1.x < w2.x
+    end)
+    for _, wall in ipairs(wallOrder) do
         local hits = self.bumpWorld:queryRect(
-            wall.x, wall.y, wall.width, wall.height)
+            wall.x - 0.1, wall.y - 0.1, wall.width + 0.2, wall.height + 0.2)
         for _, hit in ipairs(hits) do
             if hit.type == 'wall' then
                 hit.r, hit.g, hit.b = wall.r, wall.g, wall.b
             end
         end
     end
-end
-
-
--- Utilities
-
-function GameServer:generatePlayerPosition()
-    local x, y
-    while true do
-        x, y = math.random(40, 800 - 40), math.random(40, 450 - 40)
-        local hits = self.bumpWorld:queryRect(
-            x - 0.5 * PLAYER_SIZE, y - 0.5 * PLAYER_SIZE,
-            PLAYER_SIZE, PLAYER_SIZE)
-        if #hits == 0 then
-            break
-        end
-    end
-    return x, y
 end
 
 
