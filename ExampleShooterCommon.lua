@@ -4,11 +4,12 @@ bump = require 'https://raw.githubusercontent.com/kikito/bump.lua/7cae5d1ef79606
 PLAYER_SPEED = 170
 PLAYER_SIZE = 30
 
-SHOOT_RATE = 5
+SHOOT_RATE = 8
 BULLET_SPEED = 1200
 BULLET_LIFETIME = 1.5
 BULLET_RADIUS = 2.5
 BULLET_DRAW_RADIUS = 3
+BULLET_DAMAGE = 15
 
 MIN_WALL_SIZE = 30
 MAX_WALL_SIZE = 150
@@ -57,6 +58,14 @@ function GameCommon:define()
 
     -- Server sends player health updates to all
     self:defineMessageKind('playerHealth', {
+        to = 'all',
+        reliable = true,
+        channel = 0,
+        selfSend = true,
+    })
+
+    -- Server sends player score updates to all
+    self:defineMessageKind('playerScore', {
         to = 'all',
         reliable = true,
         channel = 0,
@@ -154,6 +163,7 @@ function GameCommon.receivers:addPlayer(time, clientId, x, y, r, g, b)
         b = b,
         health = 100,
         spawnCount = 1,
+        score = 0,
     }
 
     if self.clientId == clientId then
@@ -201,6 +211,13 @@ function GameCommon.receivers:playerHealth(time, clientId, health)
     local player = self.players[clientId]
     if player then
         player.health = health
+    end
+end
+
+function GameCommon.receivers:playerScore(time, clientId, score)
+    local player = self.players[clientId]
+    if player then
+        player.score = score
     end
 end
 

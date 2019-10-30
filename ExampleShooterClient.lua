@@ -11,7 +11,8 @@ function GameClient:start()
 
     -- Client-local data
 
-    self.photos = {}
+    self.photoImages = {}
+    self.scoreText = love.graphics.newText(love.graphics.newFont(14))
 
     self.shotTimer = 0
 end
@@ -19,11 +20,11 @@ end
 
 -- Utils
 
-function GameClient:loadPhoto(clientId)
+function GameClient:loadPhotoImage(clientId)
     local photoUrl = self.mes[clientId].photoUrl
     if photoUrl then
         network.async(function()
-            self.photos[clientId] = love.graphics.newImage(photoUrl)
+            self.photoImages[clientId] = love.graphics.newImage(photoUrl)
         end)
     end
 end
@@ -46,7 +47,7 @@ function GameClient.receivers:me(time, clientId, me)
     GameCommon.receivers.me(self, time, clientId, me)
 
     -- When we get a `me`, load the photo
-    self:loadPhoto(clientId)
+    self:loadPhotoImage(clientId)
 end
 
 function GameClient.receivers:fullState(time, state)
@@ -56,10 +57,10 @@ function GameClient.receivers:fullState(time, state)
         self:addPlayerBump(player)
     end
 
-    -- Read `me`s and load photos
-    self.mes = state.mes
-    for clientId, me in pairs(self.mes) do
-        self:loadPhoto(clientId)
+    -- Read `me`s and load photos -- here we merge because we may have set our own `me` already
+    for clientId, me in pairs(state.mes) do
+        self.mes[clientId] = me
+        self:loadPhotoImage(clientId)
     end
 
     -- Read bullets
@@ -174,15 +175,15 @@ function GameClient:draw()
     love.graphics.clear(0.2, 0.2, 0.2)
 
     -- Draw players
-    love.graphics.setColor(1, 1, 1)
     for clientId, player in pairs(self.players) do
-        if self.photos[clientId] then
-            local photo = self.photos[clientId]
+        love.graphics.setColor(player.r, player.g, player.b)
+        if self.photoImages[clientId] then
+            local image = self.photoImages[clientId]
             love.graphics.draw(
-                photo,
+                image,
                 player.x - 0.5 * PLAYER_SIZE, player.y - 0.5 * PLAYER_SIZE,
                 0,
-                PLAYER_SIZE / photo:getWidth(), PLAYER_SIZE / photo:getHeight())
+                PLAYER_SIZE / image:getWidth(), PLAYER_SIZE / image:getHeight())
         else
             love.graphics.rectangle(
                 'fill',
@@ -206,5 +207,36 @@ function GameClient:draw()
     love.graphics.setColor(1, 1, 1)
     for wallId, wall in pairs(self.walls) do
         love.graphics.rectangle('fill', wall.x, wall.y, wall.width, wall.height)
+    end
+
+    -- Draw score
+    do
+        local scoreFormat = {}
+
+        local playersByScore = {}
+        for clientId, player in pairs(self.players) do
+            table.insert(playersByScore, player)
+        end
+        table.sort(playersByScore, function(a, b)
+            if a.score == b.score then
+                return a.clientId > b.clientId
+            end
+            return a.score > b.score
+        end)
+        for _, player in ipairs(playersByScore) do
+            local username = self.mes[player.clientId] and self.mes[player.clientId].username or '<no name>'
+
+            table.insert(scoreFormat, { player.r, player.g, player.b })
+            table.insert(scoreFormat, username .. ': ' .. player.score .. '\n')
+        end
+        self.scoreText:setf(scoreFormat, 800, 'left')
+
+        love.graphics.setColor(0, 0, 0, 0.7)
+        love.graphics.rectangle(
+            'fill',
+            10, 10,
+            self.scoreText:getWidth() + 20, self.scoreText:getHeight() + 20)
+        love.graphics.setColor(1, 1, 1)
+        love.graphics.draw(self.scoreText, 20, 20)
     end
 end

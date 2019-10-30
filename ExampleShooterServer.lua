@@ -139,16 +139,23 @@ function GameServer:update(dt)
             if other.type == 'wall' then
                 self:send({ kind = 'removeBullet' }, bulletId)
             elseif other.type == 'player' and other.clientId ~= bullet.clientId then
-                self:send({ kind = 'removeBullet' }, bulletId)
-
-                other.health = other.health - 20
+                other.health = other.health - BULLET_DAMAGE
                 if other.health > 0 then
+                    -- Reduce health of other player
                     self:send({ kind = 'playerHealth' }, other.clientId, other.health)
                 else
-                    other.spawnCount = other.spawnCount + 1
+                    -- Respawn other player
                     local newX, newY = self:generatePlayerPosition()
-                    self:send({ kind = 'respawnPlayer' }, other.clientId, other.spawnCount, newX, newY)
+                    self:send({ kind = 'respawnPlayer' }, other.clientId, other.spawnCount + 1, newX, newY)
+
+                    -- Award shooter
+                    local shooter = self.players[bullet.clientId]
+                    if shooter then
+                        self:send({ kind = 'playerScore' }, bullet.clientId, shooter.score + 1)
+                    end
                 end
+
+                self:send({ kind = 'removeBullet' }, bulletId)
             end
         end
     end
