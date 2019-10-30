@@ -278,7 +278,7 @@ local PLAYER_SPEED = 200
 
 function GameCommon:update(dt)
     -- Interpolate players' positions based on history
-    local interpTime = self.time - 0.15 -- Interpolated players are slightly in the past
+    local interpTime = self.time - 0.1 -- Interpolated players are slightly in the past
     for clientId, player in pairs(self.players) do
         if not player.own then -- Own player is directly moved, not interpolated
             local history = player.history
