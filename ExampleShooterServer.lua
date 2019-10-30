@@ -154,7 +154,7 @@ function GameServer:update(dt)
                     -- Award shooter
                     local shooter = self.players[bullet.clientId]
                     if shooter then
-                        self:send({ kind = 'playerScore' }, bullet.clientId, shooter.score + 1)
+                        self:send({ kind = 'playerScore' }, shooter.clientId, shooter.score + 1)
                     end
                 end
 
