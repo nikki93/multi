@@ -145,7 +145,7 @@ function GameCommon:addWallBump(wall)
     self.bumpWorld:add(wall, wall.x, wall.y, wall.width, wall.height)
 end
 
-function GameCommon:walkPlayerTo(player, targetX, targetY)
+function GameCommon:walkPlayerTo(player, targetX, targetY) -- Move player with collision response
     targetX = math.max(0.5 * PLAYER_SIZE, math.min(targetX, 800 - 0.5 * PLAYER_SIZE))
     targetY = math.max(0.5 * PLAYER_SIZE, math.min(targetY, 450 - 0.5 * PLAYER_SIZE))
     local bumpX, bumpY, cols = self.bumpWorld:move(
@@ -310,12 +310,16 @@ function GameCommon:update(dt)
                 -- Have one before and one after, interpolate
                 local f = (interpTime - history[1].time) / (history[2].time - history[1].time)
                 local dx, dy = history[2].x - history[1].x, history[2].y - history[1].y
+
+                -- In the interpolation case just set position directly since owning client already computed collisions
                 player.x, player.y = history[1].x + f * dx, history[1].y + f * dy
                 self.bumpWorld:update(player, player.x - 0.5 * PLAYER_SIZE, player.y - 0.5 * PLAYER_SIZE)
             elseif #history == 1 then
                 -- Have only one before, just extrapolate with velocity
                 local idt = interpTime - history[1].time
                 local targetX, targetY = history[1].x + history[1].vx * idt, history[1].y + history[1].vy * idt
+
+                -- Here we need to compute collisions since we are extrapolating
                 self:walkPlayerTo(player, targetX, targetY)
             end
         end
