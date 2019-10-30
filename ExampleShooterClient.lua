@@ -211,11 +211,15 @@ function GameClient:draw()
         for bulletId, bullet in pairs(self.bullets) do
             local player = self.players[bullet.clientId]
             if player then
-                love.graphics.setColor(1.4 * player.r, 1.4 * player.g, 1.4 * player.b)
+                love.graphics.setColor(1.8 * player.r, 1.8 * player.g, 1.8 * player.b)
             else
                 love.graphics.setColor(1, 1, 1)
             end
-            love.graphics.circle('fill', bullet.x, bullet.y, BULLET_DRAW_RADIUS)
+            love.graphics.push()
+            love.graphics.translate(bullet.x, bullet.y)
+            love.graphics.rotate(math.atan2(bullet.vy, bullet.vx))
+            love.graphics.ellipse('fill', 0, 0, 3.5 * BULLET_DRAW_RADIUS, 0.6 * BULLET_DRAW_RADIUS)
+            love.graphics.pop()
         end
 
         -- Draw walls
@@ -225,7 +229,7 @@ function GameClient:draw()
             love.graphics.rectangle('line', wall.x - 0.1, wall.y - 0.1, wall.width + 0.2, wall.height + 0.2, 2)
         end
         for wallId, wall in pairs(self.walls) do
-            love.graphics.setColor(0.8 * wall.r, 0.8 * wall.g, 0.8 * wall.b)
+            love.graphics.setColor(0.7 * wall.r, 0.6 * wall.g, 0.8 * wall.b)
             love.graphics.rectangle('fill', wall.x, wall.y, wall.width, wall.height)
         end
 
