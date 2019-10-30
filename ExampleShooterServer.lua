@@ -35,11 +35,23 @@ function GameServer:start()
             y = math.min(y1, y2),
             width = width,
             height = height,
+            r = 0.4 + 0.6 * math.random(),
+            g = 0.4 + 0.6 * math.random(),
+            b = 0.4 + 0.6 * math.random(),
         }
 
         self.walls[wallId] = wall
 
         self:addWallBump(wall)
+    end
+    for wallId, wall in pairs(self.walls) do
+        local hits = self.bumpWorld:queryRect(
+            wall.x, wall.y, wall.width, wall.height)
+        for _, hit in ipairs(hits) do
+            if hit.type == 'wall' then
+                hit.r, hit.g, hit.b = wall.r, wall.g, wall.b
+            end
+        end
     end
 end
 

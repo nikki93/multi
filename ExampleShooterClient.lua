@@ -164,78 +164,107 @@ end
 
 -- Draw
 
+-- Some cool FX
+
+local moonshine = require 'https://raw.githubusercontent.com/nikki93/moonshine/9e04869e3ceaa76c42a69c52a954ea7f6af0469c/init.lua'
+
+local effect
+
+local function setupEffect()
+    effect = moonshine(moonshine.effects.glow)
+    effect.glow.strength = 1.6
+end
+setupEffect()
+
+function love.resize()
+    setupEffect()
+end
+
 function GameClient:draw()
     -- Not connected?
     if not self.connected then
         return
     end
 
-    -- Background
-    love.graphics.clear(0.2, 0.2, 0.2)
+    effect(function()
+        -- Background
+        love.graphics.clear(0.2, 0.2, 0.2)
 
-    -- Draw players
-    for clientId, player in pairs(self.players) do
-        love.graphics.setColor(player.r, player.g, player.b)
-        if self.photoImages[clientId] then
-            local image = self.photoImages[clientId]
-            love.graphics.draw(
-                image,
-                player.x - 0.5 * PLAYER_SIZE, player.y - 0.5 * PLAYER_SIZE,
-                0,
-                PLAYER_SIZE / image:getWidth(), PLAYER_SIZE / image:getHeight())
-        else
+        -- Draw players
+        for clientId, player in pairs(self.players) do
+            if self.photoImages[clientId] then
+                love.graphics.setColor(1.5 * player.r, 1.5 * player.g, 1.5 * player.b)
+                love.graphics.rectangle(
+                    'fill',
+                    player.x - 0.5 * PLAYER_SIZE, player.y - 0.5 * PLAYER_SIZE,
+                    PLAYER_SIZE, PLAYER_SIZE, 4)
+                love.graphics.setColor(player.r, player.g, player.b)
+                local image = self.photoImages[clientId]
+                love.graphics.draw(
+                    image,
+                    player.x - 0.475 * PLAYER_SIZE, player.y - 0.475 * PLAYER_SIZE,
+                    0,
+                    0.95 * PLAYER_SIZE / image:getWidth(), 0.95 * PLAYER_SIZE / image:getHeight())
+            else
+                love.graphics.rectangle(
+                    'fill',
+                    player.x - 0.5 * PLAYER_SIZE, player.y - 0.5 * PLAYER_SIZE,
+                    PLAYER_SIZE, PLAYER_SIZE)
+            end
+        end
+
+        -- Draw bullets
+        for bulletId, bullet in pairs(self.bullets) do
+            local player = self.players[bullet.clientId]
+            if player then
+                love.graphics.setColor(1.4 * player.r, 1.4 * player.g, 1.4 * player.b)
+            else
+                love.graphics.setColor(1, 1, 1)
+            end
+            love.graphics.circle('fill', bullet.x, bullet.y, BULLET_DRAW_RADIUS)
+        end
+
+        -- Draw walls
+        love.graphics.setLineWidth(3)
+        for wallId, wall in pairs(self.walls) do
+            love.graphics.setColor(0.6 * wall.r, 0.6 * wall.g, 0.6 * wall.b)
+            love.graphics.rectangle('line', wall.x, wall.y, wall.width, wall.height, 3)
+        end
+        for wallId, wall in pairs(self.walls) do
+            love.graphics.setColor(wall.r, wall.g, wall.b)
+            love.graphics.rectangle('fill', wall.x, wall.y, wall.width, wall.height, 3)
+        end
+
+        -- Draw score
+        do
+            local scoreFormat = {}
+
+            local playersByScore = {}
+            for clientId, player in pairs(self.players) do
+                table.insert(playersByScore, player)
+            end
+            table.sort(playersByScore, function(a, b)
+                if a.score == b.score then
+                    return a.clientId > b.clientId
+                end
+                return a.score > b.score
+            end)
+            for _, player in ipairs(playersByScore) do
+                local username = self.mes[player.clientId] and self.mes[player.clientId].username or '<no name>'
+
+                table.insert(scoreFormat, { 1.4 * player.r, 1.4 * player.g, 1.4 * player.b })
+                table.insert(scoreFormat, username .. ': ' .. player.score .. '\n')
+            end
+            self.scoreText:setf(scoreFormat, 800, 'left')
+
+            love.graphics.setColor(0, 0, 0, 0.7)
             love.graphics.rectangle(
                 'fill',
-                player.x - 0.5 * PLAYER_SIZE, player.y - 0.5 * PLAYER_SIZE,
-                PLAYER_SIZE, PLAYER_SIZE)
-        end
-    end
-
-    -- Draw bullets
-    for bulletId, bullet in pairs(self.bullets) do
-        local player = self.players[bullet.clientId]
-        if player then
-            love.graphics.setColor(player.r, player.g, player.b)
-        else
+                10, 10,
+                self.scoreText:getWidth() + 20, self.scoreText:getHeight() + 20,
+                5)
             love.graphics.setColor(1, 1, 1)
+            love.graphics.draw(self.scoreText, 20, 20)
         end
-        love.graphics.circle('fill', bullet.x, bullet.y, BULLET_DRAW_RADIUS)
-    end
-
-    -- Draw walls
-    love.graphics.setColor(1, 1, 1)
-    for wallId, wall in pairs(self.walls) do
-        love.graphics.rectangle('fill', wall.x, wall.y, wall.width, wall.height)
-    end
-
-    -- Draw score
-    do
-        local scoreFormat = {}
-
-        local playersByScore = {}
-        for clientId, player in pairs(self.players) do
-            table.insert(playersByScore, player)
-        end
-        table.sort(playersByScore, function(a, b)
-            if a.score == b.score then
-                return a.clientId > b.clientId
-            end
-            return a.score > b.score
-        end)
-        for _, player in ipairs(playersByScore) do
-            local username = self.mes[player.clientId] and self.mes[player.clientId].username or '<no name>'
-
-            table.insert(scoreFormat, { player.r, player.g, player.b })
-            table.insert(scoreFormat, username .. ': ' .. player.score .. '\n')
-        end
-        self.scoreText:setf(scoreFormat, 800, 'left')
-
-        love.graphics.setColor(0, 0, 0, 0.7)
-        love.graphics.rectangle(
-            'fill',
-            10, 10,
-            self.scoreText:getWidth() + 20, self.scoreText:getHeight() + 20)
-        love.graphics.setColor(1, 1, 1)
-        love.graphics.draw(self.scoreText, 20, 20)
-    end
+    end)
 end
