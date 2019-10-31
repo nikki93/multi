@@ -36,9 +36,6 @@ function GameServer:addWall(x, y, width, height)
         y = y,
         width = width,
         height = height,
-        r = 0.6 + 0.3 * math.random(),
-        g = 0.6 + 0.3 * math.random(),
-        b = 0.6 + 0.3 * math.random(),
     }
 
     self.walls[wallId] = wall
@@ -76,26 +73,14 @@ function GameServer:start()
         self:addWall(math.min(x1, x2), math.min(y1, y2), width, height)
     end
 
-    -- Unify colors of touching walls
-    local wallOrder = {}
-    for wallId, wall in pairs(self.walls) do
-        table.insert(wallOrder, wall)
-    end
-    table.sort(wallOrder, function(w1, w2)
-        if w1.x == w2.x then
-            return w1.y < w2.y
-        end
-        return w1.x < w2.x
-    end)
-    for _, wall in ipairs(wallOrder) do
-        local hits = self.bumpWorld:queryRect(
-            wall.x - 0.1, wall.y - 0.1, wall.width + 0.2, wall.height + 0.2)
-        for _, hit in ipairs(hits) do
-            if hit.type == 'wall' then
-                hit.r, hit.g, hit.b = wall.r, wall.g, wall.b
-            end
-        end
-    end
+    -- Available colors for players
+    self.playerColorsAvailable = {
+        { 255, 136, 0 },
+        { 140, 153, 115 },
+        { 0, 217, 87 },
+        { 191, 217, 255 },
+        { 242, 61, 157 },
+    }
 end
 
 
@@ -115,7 +100,15 @@ function GameServer:connect(clientId)
 
     -- Add player for new client
 
-    local r, g, b = 0.4 + 0.8 * math.random(), 0.4 + 0.8 * math.random(), 0.4 + 0.8 * math.random()
+    local r, g, b
+    if #self.playerColorsAvailable > 0 then
+        local i = math.random(1, #self.playerColorsAvailable)
+        local color = table.remove(self.playerColorsAvailable, i)
+        r, g, b = color[1] / 255, color[2] / 255, color[3], 255
+    else
+        r, g, b = 0.4 + 0.8 * math.random(), 0.4 + 0.8 * math.random(), 0.4 + 0.8 * math.random()
+    end
+
     local x, y = self:generatePlayerPosition()
     self:send({ kind = 'addPlayer' }, clientId, x, y, r, g, b)
 end
