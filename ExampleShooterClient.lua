@@ -166,6 +166,8 @@ function love.resize()
     setupEffect()
 end
 
+local visibilityCanvas = love.graphics.newCanvas()
+
 function GameClient:draw()
     -- Not connected?
     if not self.connected then
@@ -231,6 +233,100 @@ function GameClient:draw()
         for wallId, wall in pairs(self.walls) do
             love.graphics.setColor(0.7 * wall.r, 0.6 * wall.g, 0.8 * wall.b)
             love.graphics.rectangle('fill', wall.x, wall.y, wall.width, wall.height)
+        end
+
+        -- Draw shadows
+        do
+            local ownPlayer = self.players[self.clientId]
+            if ownPlayer then
+                local visibilityPoints = {}
+
+                local D_ANGLE = 2 * math.pi / 360
+                local c = math.cos(D_ANGLE)
+                local s = math.sin(D_ANGLE)
+
+                for wallId, wall in pairs(self.walls) do
+                    local wallPoints = {
+                        { wall.x, wall.y },
+                        { wall.x + wall.width, wall.y },
+                        { wall.x, wall.y + wall.height },
+                        { wall.x + wall.width, wall.y + wall.height },
+                    }
+                    for _, wallPoint in ipairs(wallPoints) do
+                        local dirX, dirY = wallPoint[1] - ownPlayer.x, wallPoint[2] - ownPlayer.y
+                        local dirLen = math.sqrt(dirX * dirX + dirY * dirY)
+                        dirX, dirY = 1000 * dirX / dirLen, 1000 * dirY / dirLen
+
+                        local dirs = {
+                            { c * dirX + s * dirY, -1 * s * dirX + c * dirY },
+                            { dirX, dirY },
+                            { c * dirX - s * dirY, s * dirX + c * dirY },
+                        }
+
+                        for i, dir in ipairs(dirs) do
+                            dirX, dirY = dir[1], dir[2]
+
+                            local targetX, targetY = ownPlayer.x + dirX, ownPlayer.y + dirY
+                            local items = self.bumpWorld:querySegmentWithCoords(
+                                ownPlayer.x, ownPlayer.y,
+                                targetX, targetY, function(other)
+                                    return other.type == 'wall'
+                                end)
+
+                            local hitX, hitY
+                            if #items > 0 then
+                                hitX, hitY = items[1].x1, items[1].y1
+                            end
+
+                            local hitDX, hitDY = hitX - ownPlayer.x, hitY - ownPlayer.y
+                            local hitLen = math.sqrt(hitDX * hitDX + hitDY * hitDY)
+
+                            if i == 2 and hitLen > dirLen then
+                                table.insert(visibilityPoints, wallPoint)
+                            else
+                                table.insert(visibilityPoints, { hitX, hitY })
+                            end
+                        end
+                    end
+                end
+                table.sort(visibilityPoints, function(p1, p2)
+                    local angle1 = math.atan2(p1[2] - ownPlayer.y, p1[1] - ownPlayer.x)
+                    local angle2 = math.atan2(p2[2] - ownPlayer.y, p2[1] - ownPlayer.x)
+                    return angle1 < angle2
+                end)
+
+                visibilityCanvas:renderTo(function()
+                    love.graphics.clear(0, 0, 0)
+                    love.graphics.setColor(1, 1, 1)
+                    for i = 1, #visibilityPoints do
+                        local p1 = visibilityPoints[i]
+                        local p2 = visibilityPoints[i == #visibilityPoints and 1 or (i + 1)]
+                        love.graphics.polygon('fill', ownPlayer.x, ownPlayer.y, p1[1], p1[2], p2[1], p2[2])
+                    end
+                end)
+
+                love.graphics.push('all')
+                love.graphics.setBlendMode('multiply', 'premultiplied')
+                love.graphics.draw(visibilityCanvas, 0, 0)
+                love.graphics.pop('all')
+
+                -- For testing
+                -- love.graphics.setColor(1, 1, 1)
+                -- for i, visibilityPoint in ipairs(visibilityPoints) do
+                --     love.graphics.line(ownPlayer.x, ownPlayer.y, visibilityPoint[1], visibilityPoint[2])
+                --     -- love.graphics.circle('fill', visibilityPoint[1], visibilityPoint[2], 20, 20)
+                --     love.graphics.print(i, visibilityPoint[1], visibilityPoint[2])
+                -- end
+                -- local visibilityPolygon = {}
+                -- for _, visibilityPoint in ipairs(visibilityPoints) do
+                --     table.insert(visibilityPolygon, visibilityPoint[1])
+                --     table.insert(visibilityPolygon, visibilityPoint[2])
+                -- end
+                -- love.graphics.setColor(1, 1, 1)
+                -- for _, triangle in ipairs(love.math.triangulate(visibilityPolygon)) do
+                --     love.graphics.polygon('line', triangle)
+                -- end
+            end
         end
 
         -- Draw score

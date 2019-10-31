@@ -27,11 +27,37 @@ end
 
 -- Start / stop
 
+function GameServer:addWall(x, y, width, height)
+    local wallId = self:generateId()
+
+    local wall = {
+        type = 'wall',
+        x = x,
+        y = y,
+        width = width,
+        height = height,
+        r = 0.6 + 0.3 * math.random(),
+        g = 0.6 + 0.3 * math.random(),
+        b = 0.6 + 0.3 * math.random(),
+    }
+
+    self.walls[wallId] = wall
+
+    self:addWallBump(wall)
+end
+
 function GameServer:start()
     GameCommon.start(self)
 
-    -- Generate walls
     self.walls = {}
+
+    -- -- Generate boundary walls
+    self:addWall(-40, -40, 40, 530) -- Left
+    self:addWall(800, -40, 40, 530) -- Right
+    self:addWall(0, -40, 800, 40) -- Top
+    self:addWall(0, 450, 800, 40) -- Bottom
+
+    -- Generate random walls
     for i = 1, 8 do
         local x1, y1 = roundTo(math.random(0, 800), PLAYER_SIZE), roundTo(math.random(0, 450), PLAYER_SIZE)
         local x2, y2
@@ -47,23 +73,7 @@ function GameServer:start()
             end
             -- Doesn't fit, regen
         end
-
-        local wallId = self:generateId()
-
-        local wall = {
-            type = 'wall',
-            x = math.min(x1, x2),
-            y = math.min(y1, y2),
-            width = width,
-            height = height,
-            r = 0.6 + 0.3 * math.random(),
-            g = 0.6 + 0.3 * math.random(),
-            b = 0.6 + 0.3 * math.random(),
-        }
-
-        self.walls[wallId] = wall
-
-        self:addWallBump(wall)
+        self:addWall(math.min(x1, x2), math.min(y1, y2), width, height)
     end
 
     -- Unify colors of touching walls
