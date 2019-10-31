@@ -299,6 +299,27 @@ function GameClient:draw()
                     return angle1 < angle2
                 end)
 
+                love.graphics.push('all')
+                love.graphics.setColor(0, 0, 0, 0.2)
+                love.graphics.setLineWidth(8)
+                for i = 1, #visibilityPoints do
+                    local p1 = visibilityPoints[i]
+                    local p2 = visibilityPoints[i == #visibilityPoints and 1 or (i + 1)]
+                    if math.abs(p1[1] - p2[1]) > 0.01 and math.abs(p1[2] - p2[2]) > 0.01 then
+                        love.graphics.line(p1[1], p1[2], p2[1], p2[2])
+                    end
+                end
+                love.graphics.setLineWidth(2)
+                love.graphics.setColor(0, 0, 0, 0.5)
+                for i = 1, #visibilityPoints do
+                    local p1 = visibilityPoints[i]
+                    local p2 = visibilityPoints[i == #visibilityPoints and 1 or (i + 1)]
+                    if math.abs(p1[1] - p2[1]) > 0.01 and math.abs(p1[2] - p2[2]) > 0.01 then
+                        love.graphics.line(p1[1], p1[2], p2[1], p2[2])
+                    end
+                end
+                love.graphics.pop()
+
                 visibilityCanvas:renderTo(function()
                     love.graphics.clear(0, 0, 0)
                     love.graphics.setColor(1, 1, 1)
