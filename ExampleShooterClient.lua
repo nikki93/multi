@@ -280,12 +280,12 @@ function GameClient:draw()
                 love.graphics.setBlendMode('multiply', 'premultiplied')
 
                 -- First, lighter shadows from offset positions -- creates penumbra effect
-                -- local NUM_OFFSETS = 8
-                -- for i = 1, NUM_OFFSETS do
-                --     local darkness = 0.9 + (i / NUM_OFFSETS) * 0.1
-                --     love.graphics.setColor(darkness, darkness, darkness)
-                --     drawPenumbras(8, (i / NUM_OFFSETS) * 0.2 * PLAYER_SIZE)
-                -- end
+                local NUM_OFFSETS = 5
+                for i = 1, NUM_OFFSETS do
+                    local darkness = 0.9 + (i / NUM_OFFSETS) * 0.1
+                    love.graphics.setColor(darkness, darkness, darkness)
+                    drawPenumbras(5, (i / NUM_OFFSETS) * 0.2 * PLAYER_SIZE)
+                end
 
                 -- Then, fully dark shadows from player's exact position
                 love.graphics.setColor(0, 0, 0)
