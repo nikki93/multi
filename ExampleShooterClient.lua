@@ -284,7 +284,7 @@ function GameClient:draw()
                 for i = 1, NUM_OFFSETS do
                     local darkness = 0.85 + (i / NUM_OFFSETS) * 0.1
                     love.graphics.setColor(darkness, darkness, darkness)
-                    drawPenumbras(5, (i / NUM_OFFSETS) * 0.15 * PLAYER_SIZE)
+                    drawPenumbras(4, (i / NUM_OFFSETS) * 0.15 * PLAYER_SIZE)
                 end
 
                 -- Then, fully dark shadows from player's exact position
