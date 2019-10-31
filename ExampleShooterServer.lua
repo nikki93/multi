@@ -75,11 +75,18 @@ function GameServer:start()
 
     -- Available colors for players
     self.playerColorsAvailable = {
-        { 255, 136, 0 },
-        { 140, 153, 115 },
-        { 0, 217, 87 },
-        { 191, 217, 255 },
-        { 242, 61, 157 },
+        { 0.29, 0.62, 0.855 },
+        { 0.408, 0.447, 0.878 },
+        { 0.6, 0.4, 0.878 },
+        { 0.839, 0.396, 0.878 },
+        { 0.878, 0.4, 0.678 },
+        { 0.882, 0.412, 0.451 },
+        { 0.855, 0.525, 0.29 },
+        { 0.843, 0.788, 0.22 },
+        { 0.588, 0.843, 0.231 },
+        { 0.329, 0.855, 0.282 },
+        { 0.275, 0.855, 0.518 },
+        { 0.267, 0.851, 0.804 },
     }
 end
 
@@ -104,9 +111,9 @@ function GameServer:connect(clientId)
     if #self.playerColorsAvailable > 0 then
         local i = math.random(1, #self.playerColorsAvailable)
         local color = table.remove(self.playerColorsAvailable, i)
-        r, g, b = color[1] / 255, color[2] / 255, color[3], 255
+        r, g, b = color[1], color[2], color[3]
     else
-        r, g, b = 0.4 + 0.8 * math.random(), 0.4 + 0.8 * math.random(), 0.4 + 0.8 * math.random()
+        r, g, b = 0.2 + 0.8 * math.random(), 0.2 + 0.8 * math.random(), 0.2 + 0.8 * math.random()
     end
 
     local x, y = self:generatePlayerPosition()

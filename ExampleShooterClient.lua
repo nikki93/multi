@@ -214,7 +214,7 @@ function GameClient:draw()
         for bulletId, bullet in pairs(self.bullets) do
             local player = self.players[bullet.clientId]
             if player then
-                love.graphics.setColor(0.9 * player.r, 0.9 * player.g, 0.9 * player.b)
+                love.graphics.setColor(player.r, player.g, player.b)
             else
                 love.graphics.setColor(1, 1, 1)
             end
