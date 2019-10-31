@@ -230,10 +230,6 @@ function GameClient:draw()
             love.graphics.setColor(1.4 * wall.r, 1.4 * wall.g, 1.4 * wall.b)
             love.graphics.rectangle('line', wall.x - 0.1, wall.y - 0.1, wall.width + 0.2, wall.height + 0.2, 2)
         end
-        for wallId, wall in pairs(self.walls) do
-            love.graphics.setColor(0.7 * wall.r, 0.6 * wall.g, 0.8 * wall.b)
-            love.graphics.rectangle('fill', wall.x, wall.y, wall.width, wall.height)
-        end
 
         -- Draw shadows
         do
