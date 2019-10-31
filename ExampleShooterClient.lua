@@ -278,13 +278,17 @@ function GameClient:draw()
                                 hitX, hitY = items[1].x1, items[1].y1
                             end
 
-                            local hitDX, hitDY = hitX - ownPlayer.x, hitY - ownPlayer.y
-                            local hitLen = math.sqrt(hitDX * hitDX + hitDY * hitDY)
+                            if hitX and hitY then
+                                local hitDX, hitDY = hitX - ownPlayer.x, hitY - ownPlayer.y
+                                local hitLen = math.sqrt(hitDX * hitDX + hitDY * hitDY)
 
-                            if i == 2 and hitLen > dirLen then
-                                table.insert(visibilityPoints, wallPoint)
+                                if i == 2 and hitLen > dirLen then
+                                    table.insert(visibilityPoints, wallPoint)
+                                else
+                                    table.insert(visibilityPoints, { hitX, hitY })
+                                end
                             else
-                                table.insert(visibilityPoints, { hitX, hitY })
+                                table.insert(visibilityPoints, wallPoint)
                             end
                         end
                     end
