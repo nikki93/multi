@@ -164,21 +164,17 @@ function GameServer:update(dt)
         end
     end
 
-    -- Move bullets, checking collisions
+    -- Move bullets, checking player collisions
     for bulletId, bullet in pairs(self.bullets) do
-        local targetX, targetY = bullet.x + bullet.vx * dt, bullet.y + bullet.vy * dt
-        local bumpX, bumpY, cols = self.bumpWorld:move(
-            bullet,
-            targetX - BULLET_RADIUS, targetY - BULLET_RADIUS,
-            function(_, other)
-                return 'cross'
-            end)
-        bullet.x, bullet.y = bumpX + BULLET_RADIUS, bumpY + BULLET_RADIUS
+        local cols = self:moveBullet(bullet, dt)
 
         for _, col in ipairs(cols) do
             local other = col.other
             if other.type == 'wall' then
-                self:send({ kind = 'removeBullet' }, bulletId)
+                bullet.bouncesLeft = bullet.bouncesLeft - 1
+                if bullet.bouncesLeft <= 0 then
+                    self:send({ kind = 'removeBullet' }, bulletId)
+                end
             elseif other.type == 'player' and other.clientId ~= bullet.clientId then
                 other.health = other.health - BULLET_DAMAGE
                 if other.health > 0 then
@@ -203,6 +199,6 @@ function GameServer:update(dt)
 
     -- Send bullet positions
     for bulletId, bullet in pairs(self.bullets) do
-        self:send({ kind = 'bulletPosition' }, bulletId, bullet.x, bullet.y)
+        self:send({ kind = 'bulletPositionVelocity' }, bulletId, bullet.x, bullet.y, bullet.vx, bullet.vy)
     end
 end

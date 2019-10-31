@@ -6,7 +6,8 @@ PLAYER_SIZE = 30
 
 SHOOT_RATE = 8
 BULLET_SPEED = 1200
-BULLET_LIFETIME = 1.5
+BULLET_LIFETIME = 0.8
+BULLET_BOUNCES = 3
 BULLET_RADIUS = 2.5
 BULLET_DRAW_RADIUS = 3
 BULLET_DAMAGE = 15
@@ -47,7 +48,7 @@ function GameCommon:define()
         selfSend = true,
     })
 
-    -- Client sends position updates for its own player, forwarded to all
+    -- Client sends position and velocity updates for its own player, forwarded to all
     self:defineMessageKind('playerPositionVelocity', {
         reliable = false,
         channel = 1,
@@ -102,12 +103,12 @@ function GameCommon:define()
         selfSend = true,
     })
 
-    -- Server sends bullet position updates to all
-    self:defineMessageKind('bulletPosition', {
+    -- Server sends bullet position and velocity updates to all
+    self:defineMessageKind('bulletPositionVelocity', {
         to = 'all',
         reliable = false,
         channel = 3,
-        rate = 5,
+        rate = 12,
         selfSend = false,
     })
 end
@@ -161,6 +162,30 @@ function GameCommon:walkPlayerTo(player, targetX, targetY) -- Move player with c
             end
         end)
     player.x, player.y = bumpX + 0.5 * PLAYER_SIZE, bumpY + 0.5 * PLAYER_SIZE
+end
+
+function GameCommon:moveBullet(bullet, dt) -- Move bullet with collision response, returl collisions
+    local targetX, targetY = bullet.x + bullet.vx * dt, bullet.y + bullet.vy * dt
+    local bumpX, bumpY, cols = self.bumpWorld:move(
+        bullet,
+        targetX - BULLET_RADIUS, targetY - BULLET_RADIUS,
+        function(_, other)
+            if other.type == 'wall' then
+                return 'bounce'
+            end
+            return 'cross'
+        end)
+    bullet.x, bullet.y = bumpX + BULLET_RADIUS, bumpY + BULLET_RADIUS
+
+    for _, col in ipairs(cols) do -- Update velocity if hit wall
+        if col.other.type == 'wall' then
+            local bounceX, bounceY = bumpX - col.touch.x, bumpY - col.touch.y
+            local bounceLen = math.sqrt(bounceX * bounceX + bounceY * bounceY)
+            bullet.vx, bullet.vy = BULLET_SPEED * bounceX / bounceLen, BULLET_SPEED * bounceY / bounceLen
+        end
+    end
+
+    return cols
 end
 
 
@@ -274,6 +299,7 @@ function GameCommon.receivers:addBullet(time, clientId, bulletId, x, y, vx, vy)
 
     if self.server then -- Server keeps track of lifetime
         bullet.timeLeft = BULLET_LIFETIME
+        bullet.bouncesLeft = BULLET_BOUNCES
     end
 
     self.bullets[bulletId] = bullet

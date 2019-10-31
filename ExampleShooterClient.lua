@@ -76,11 +76,12 @@ function GameClient.receivers:fullState(time, state)
     end
 end
 
-function GameClient.receivers:bulletPosition(time, bulletId, x, y)
+function GameClient.receivers:bulletPositionVelocity(time, bulletId, x, y, vx, vy)
     local bullet = self.bullets[bulletId]
     if bullet then
-        local dt = self.time - time
-        bullet.x, bullet.y = x + bullet.vx * dt, y + bullet.vy * dt
+        bullet.x, bullet.y, bullet.vx, bullet.vy = x, y, vx, vy
+        self.bumpWorld:update(bullet, bullet.x, bullet.y)
+        self:moveBullet(bullet, self.time - time)
     end
 end
 
@@ -131,9 +132,9 @@ function GameClient:update(dt)
         end
     end
 
-    -- Move bullets, no collision check (server handles bullet collisions)
+    -- Move bullets
     for bulletId, bullet in pairs(self.bullets) do
-        bullet.x, bullet.y = bullet.x + bullet.vx * dt, bullet.y + bullet.vy * dt
+        self:moveBullet(bullet, dt)
     end
 
     -- Do common update
