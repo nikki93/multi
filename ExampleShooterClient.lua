@@ -12,9 +12,11 @@ function GameClient:start()
     -- Client-local data
 
     self.photoImages = {}
-    self.scoreText = love.graphics.newText(love.graphics.newFont(14))
+    self.overlayText = love.graphics.newText(love.graphics.newFont(14))
 
     self.shotTimer = 0
+
+    self.showDebugInfo = false
 end
 
 
@@ -145,6 +147,15 @@ function GameClient:update(dt)
         self:send({
             kind = 'playerPositionVelocity',
         }, self.clientId, ownPlayer.spawnCount, ownPlayer.x, ownPlayer.y, ownPlayer.vx, ownPlayer.vy)
+    end
+end
+
+
+-- Keyboard
+
+function GameClient:keypressed(key)
+    if key == 'return' then
+        self.showDebugInfo = not self.showDebugInfo
     end
 end
 
@@ -284,10 +295,11 @@ function GameClient:draw()
             end
         end
 
-        -- Draw score
+        -- Draw text overlay
         do
-            local scoreFormat = {}
+            local textFormat = {}
 
+            -- Score
             local playersByScore = {}
             for clientId, player in pairs(self.players) do
                 table.insert(playersByScore, player)
@@ -301,19 +313,25 @@ function GameClient:draw()
             for _, player in ipairs(playersByScore) do
                 local username = self.mes[player.clientId] and self.mes[player.clientId].username or '<no name>'
 
-                table.insert(scoreFormat, { 1.4 * player.r, 1.4 * player.g, 1.4 * player.b })
-                table.insert(scoreFormat, username .. ': ' .. player.score .. '\n')
+                table.insert(textFormat, { 1.4 * player.r, 1.4 * player.g, 1.4 * player.b })
+                table.insert(textFormat, username .. ': ' .. player.score .. '\n')
             end
-            self.scoreText:setf(scoreFormat, 800, 'left')
 
+            -- Debug info
+            if self.showDebugInfo then
+                table.insert(textFormat, { 1, 1, 1 })
+                table.insert(textFormat, '\nfps: ' .. love.timer.getFPS() .. '\n' .. 'ping: ' .. self.client.getPing())
+            end
+
+            self.overlayText:setf(textFormat, 800, 'left')
             love.graphics.setColor(0, 0, 0, 0.7)
             love.graphics.rectangle(
                 'fill',
                 10, 10,
-                self.scoreText:getWidth() + 20, self.scoreText:getHeight() + 20,
+                self.overlayText:getWidth() + 20, self.overlayText:getHeight() + 20,
                 5)
             love.graphics.setColor(1, 1, 1)
-            love.graphics.draw(self.scoreText, 20, 20)
+            love.graphics.draw(self.overlayText, 20, 20)
         end
     end)
 end
