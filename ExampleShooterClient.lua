@@ -238,7 +238,7 @@ function GameClient:draw()
             if ownPlayer then
                 local visibilityPoints = {}
 
-                local D_ANGLE = 2 * math.pi / 360
+                local D_ANGLE = 0.2 * 2 * math.pi / 360
                 local c = math.cos(D_ANGLE)
                 local s = math.sin(D_ANGLE)
 
