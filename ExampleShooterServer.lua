@@ -59,11 +59,11 @@ function GameServer:start()
 
     -- Generate random walls
     for i = 1, 8 do
-        local x1, y1 = roundTo(math.random(0, 800), PLAYER_SIZE), roundTo(math.random(0, 450), PLAYER_SIZE)
+        local x1, y1 = roundTo(math.random(0, 800), WALL_GRID_SIZE), roundTo(math.random(0, 450), WALL_GRID_SIZE)
         local x2, y2
         local width, height
         while true do
-            x2, y2 = roundTo(math.random(0, 800), PLAYER_SIZE), roundTo(math.random(0, 450), PLAYER_SIZE)
+            x2, y2 = roundTo(math.random(0, 800), WALL_GRID_SIZE), roundTo(math.random(0, 450), WALL_GRID_SIZE)
             width, height = math.abs(x1 - x2), math.abs(y1 - y2)
             local area = width * height
             if MIN_WALL_SIZE <= width and width <= MAX_WALL_SIZE and

@@ -199,9 +199,9 @@ function GameClient:draw()
                 local image = self.photoImages[clientId]
                 love.graphics.draw(
                     image,
-                    player.x - 0.475 * PLAYER_SIZE, player.y - 0.475 * PLAYER_SIZE,
+                    player.x - 0.45 * PLAYER_SIZE, player.y - 0.45 * PLAYER_SIZE,
                     0,
-                    0.95 * PLAYER_SIZE / image:getWidth(), 0.95 * PLAYER_SIZE / image:getHeight())
+                    0.9 * PLAYER_SIZE / image:getWidth(), 0.9 * PLAYER_SIZE / image:getHeight())
             else
                 love.graphics.rectangle(
                     'fill',

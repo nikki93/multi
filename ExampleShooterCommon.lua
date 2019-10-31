@@ -2,7 +2,7 @@ bump = require 'https://raw.githubusercontent.com/kikito/bump.lua/7cae5d1ef79606
 
 
 PLAYER_SPEED = 170
-PLAYER_SIZE = 30
+PLAYER_SIZE = 29
 
 SHOOT_RATE = 8
 BULLET_SPEED = 1200
@@ -14,6 +14,7 @@ BULLET_DAMAGE = 15
 
 MIN_WALL_SIZE = 30
 MAX_WALL_SIZE = 150
+WALL_GRID_SIZE = 30
 
 
 -- Define
