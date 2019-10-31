@@ -1,4 +1,4 @@
-require 'lib.client' -- You would use the full 'https://...' raw URI to 'lib/client.lua' here
+require 'client' -- You would use the full 'https://...' raw URI to 'client.lua' here
 
 
 require 'ExampleShooterCommon'

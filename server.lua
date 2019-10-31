@@ -1,15 +1,6 @@
-local clientServer
-if not pcall(function()
-    clientServer = require 'cs'
-end) then
-    clientServer = require 'lib.cs'
-end
+local clientServer = require 'cs'
 
-if not pcall(function()
-    require 'game'
-end) then
-    require 'lib.game'
-end
+require 'game'
 
 
 local server = clientServer.server

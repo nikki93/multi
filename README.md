@@ -20,7 +20,7 @@ This example builds on the walking example for player movement. Random rectangul
 
 You must have separate client and server modules that you specify as `main: ` and `serverMain: ` in your project's '.castle' file ([the `serverMain: ` key appears under the `multiplayer: ` key](https://castle.games/documentation/reference/castle-project-file-reference)).
 
-The client module must `require` the 'lib/client.lua' file in this repository, while the server module must `require` the 'lib/server.lua' file. You can `require` them using direct 'https://...' URIs as is possible in Castle. The globals `GameCommon` and `GameClient` will become available on the client, and `GameCommon` and `GameServer` will be available on the server.
+The client module must `require` the 'client.lua' file in this repository, while the server module must `require` the 'server.lua' file. You can `require` them using direct 'https://...' URIs as is possible in Castle. The globals `GameCommon` and `GameClient` will become available on the client, and `GameCommon` and `GameServer` will be available on the server.
 
 You implement methods in `GameCommon`, `GameClient` and `GameServer` to define your game. The methods you implement are listed under the 'Methods you implement' heading below. In any implemented method, `GameClient` or `GameServer` can call the `GameCommon` version using `GameCommon.<methodName>(self, ...)`, passing along all of the arguments that it received (it is free to pass in different arguments too).
 

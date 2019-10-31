@@ -1,4 +1,4 @@
-require 'lib.server' -- You would use the full 'https://...' raw URI to 'lib/server.lua' here
+require 'server' -- You would use the full 'https://...' raw URI to 'server.lua' here
 
 
 require 'ExampleShooterCommon'
