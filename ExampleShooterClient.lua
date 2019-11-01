@@ -12,11 +12,16 @@ function GameClient:start()
     -- Client-local data
 
     self.photoImages = {}
+
+    self.crosshairImage = love.graphics.newImage('assets/crosshair.png')
+
     self.overlayText = love.graphics.newText(love.graphics.newFont(14))
 
     self.shotTimer = 0
 
     self.showDebugInfo = false
+
+    love.mouse.setVisible(false)
 end
 
 
@@ -222,17 +227,24 @@ function GameClient:draw()
         end
 
         -- Draw bullets
+        love.graphics.setLineWidth(3)
         for bulletId, bullet in pairs(self.bullets) do
             local player = self.players[bullet.clientId]
-            if player then
-                love.graphics.setColor(player.r, player.g, player.b)
-            else
-                love.graphics.setColor(1, 1, 1)
-            end
             love.graphics.push()
             love.graphics.translate(bullet.x, bullet.y)
             love.graphics.rotate(math.atan2(bullet.vy, bullet.vx))
-            love.graphics.ellipse('fill', 0, 0, 3.5 * BULLET_DRAW_RADIUS, 0.6 * BULLET_DRAW_RADIUS)
+            if player then
+                love.graphics.setColor(1.6 * player.r, 1.6 * player.g, 1.6 * player.b)
+            else
+                love.graphics.setColor(1, 1, 1)
+            end
+            love.graphics.ellipse('line', 0, 0, 4.5 * BULLET_DRAW_RADIUS, 0.2 * BULLET_DRAW_RADIUS)
+            if player then
+                love.graphics.setColor(1.2 * player.r, 1.2 * player.g, 1.2 * player.b)
+            else
+                love.graphics.setColor(1, 1, 1)
+            end
+            love.graphics.ellipse('fill', 0, 0, 4.5 * BULLET_DRAW_RADIUS, 0.2 * BULLET_DRAW_RADIUS)
             love.graphics.pop()
         end
 
@@ -333,6 +345,17 @@ function GameClient:draw()
                 5)
             love.graphics.setColor(1, 1, 1)
             love.graphics.draw(self.overlayText, 20, 20)
+        end
+
+        -- Draw crosshair
+        do
+            love.graphics.setColor(1, 1, 1)
+            local mouseX, mouseY = love.mouse.getPosition()
+            love.graphics.draw(
+                self.crosshairImage,
+                mouseX - 0.5 * CROSSHAIR_SIZE, mouseY - 0.5 * CROSSHAIR_SIZE,
+                0,
+                CROSSHAIR_SIZE / self.crosshairImage:getWidth(), CROSSHAIR_SIZE / self.crosshairImage:getHeight())
         end
     end)
 end

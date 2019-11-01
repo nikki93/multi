@@ -68,3 +68,6 @@ You can also implement any method named like a [LÖVE callback](https://love2d.o
 
 On the client, all LÖVE callbacks are available and the same arguments are passed in that are passed by LÖVE.
 
+# Attributions
+
+Crosshair image in multiplayer example is from https://www.kenney.nl/assets/crosshair-pack. Thanks!
