@@ -157,6 +157,7 @@ function GameCommon:walkPlayerTo(player, targetX, targetY) -- Move player with c
         targetX - 0.5 * PLAYER_SIZE, targetY - 0.5 * PLAYER_SIZE,
         function(_, other)
             if other.type == 'player' then
+                -- TODO(nikki): Allow players to cross each other? (prevents weird teleportation bugs)
                 return 'slide'
             elseif other.type == 'wall' then
                 return 'slide'
@@ -294,6 +295,7 @@ function GameCommon.receivers:addBullet(time, clientId, bulletId, x, y, vx, vy)
     local bullet = {
         type = 'bullet',
         clientId = clientId,
+        -- TODO(nikki): Use `:moveBullet`?
         x = x + vx * dt,
         y = y + vy * dt,
         vx = vx,
