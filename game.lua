@@ -122,6 +122,16 @@ function Game:send(opts, ...)
 
     local defaults = self._kindDefaults[kind]
 
+    local from = opts.from or defaults.from
+    if from then
+        if from == 'server' and self.client then
+            error("kind '" .. kind .. "' can only be sent by server")
+        end
+        if from == 'client' and self.server then
+            error("kind '" .. kind .. "' can only be sent by client")
+        end
+    end
+
     local reliable = opts.reliable or defaults.reliable
     assert(type(reliable) == 'boolean', 'send: `reliable` needs to be a boolean')
 
@@ -165,7 +175,7 @@ function Game:send(opts, ...)
     if selfSend == nil then
         selfSend = defaults.selfSend
     end
-    assert(type(selfSend) == 'boolean', 'send: `self` needs to be a boolean')
+    assert(type(selfSend) == 'boolean', 'send: `selfSend` needs to be a boolean')
     if selfSend then
         self:_receive(self.clientId, kindNum, self.time, false, nil, nil, ...)
     end

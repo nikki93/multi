@@ -50,10 +50,37 @@ function GameClient:update(dt)
     if not self.connected then
         return
     end
+
+    -- Common update
+    GameCommon.update(self, dt)
 end
 
+
+-- Keyboard
+
+function GameClient:keypressed(key)
+    if key == 'space' then
+        self:send({ kind = 'createMainWorld' })
+    end
+end
 
 -- Draw
 
 function GameClient:draw()
+    if self.mainWorldId then
+        local world = self.physicsObjects[self.mainWorldId]
+        for _, body in ipairs(world:getBodies()) do
+            for _, fixture in ipairs(body:getFixtures()) do
+                local shape = fixture:getShape()
+                local ty = shape:getType()
+                if ty == 'circle' then
+                    love.graphics.circle('fill', body:getX(), body:getY(), shape:getRadius())
+                elseif ty == 'polygon' then
+                    love.graphics.polygon('fill', body:getWorldPoints(shape:getPoints()))
+                elseif ty == 'edge' then
+                elseif ty == 'chain' then
+                end
+            end
+        end
+    end
 end
