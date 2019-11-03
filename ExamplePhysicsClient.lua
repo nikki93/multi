@@ -163,9 +163,11 @@ function GameClient:draw()
             -- Draw owner avatar
             if ownerId then
                 local image = self.photoImages[ownerId]
-                local x, y = body:getPosition()
-                love.graphics.setColor(1, 1, 1)
-                love.graphics.draw(image, x - 15, y - 15, 0, 30 / image:getWidth(), 30 / image:getHeight())
+                if image then
+                    local x, y = body:getPosition()
+                    love.graphics.setColor(1, 1, 1)
+                    love.graphics.draw(image, x - 15, y - 15, 0, 30 / image:getWidth(), 30 / image:getHeight())
+                end
             end
         end
     end
