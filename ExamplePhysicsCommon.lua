@@ -118,7 +118,7 @@ function GameCommon:define()
 
     self:defineMessageKind('createMainWorld', {
         reliable = true,
-        channel = MIN_PHYSICS_CHANNEL,
+        channel = 0,
         forward = false,
         selfSend = false,
     })
@@ -126,7 +126,7 @@ function GameCommon:define()
     self:defineMessageKind('mainWorldId', {
         to = 'all',
         reliable = true,
-        channel = MIN_PHYSICS_CHANNEL,
+        channel = 0,
         selfSend = true,
     })
 end
