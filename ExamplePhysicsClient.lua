@@ -53,6 +53,16 @@ function GameClient:update(dt)
 
     -- Common update
     GameCommon.update(self, dt)
+
+    -- Send body syncs
+    for objId in pairs(self.physicsOwnerIdToObjectIds) do
+        local body = self.physicsIdToObject[objId]
+        if obj and obj:typeOf('Body') then
+            self:send({
+                kind = 'physics_clientBodySync',
+            }, objId, self:physics_getBodySync(obj))
+        end
+    end
 end
 
 
@@ -68,7 +78,7 @@ end
 
 function GameClient:draw()
     if self.mainWorldId then
-        local world = self.physicsObjects[self.mainWorldId]
+        local world = self.physicsIdToObject[self.mainWorldId]
         for _, body in ipairs(world:getBodies()) do
             for _, fixture in ipairs(body:getFixtures()) do
                 local shape = fixture:getShape()

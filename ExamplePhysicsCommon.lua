@@ -44,8 +44,10 @@ function GameCommon:define()
             if not GameCommon.receivers[kind] then
                 GameCommon.receivers[kind] = function(self, time, physicsId, ...)
                     (function (...)
-                        self.physicsObjects[physicsId] = love.physics[methodName](...)
-                    end)(self:resolvePhysicsIds(...))
+                        local obj = love.physics[methodName](...)
+                        self.physicsIdToObject[physicsId] = obj
+                        self.physicsObjectToId[obj] = physicsId
+                    end)(self:physics_resolveIds(...))
                 end
 
                 GameCommon[kind] = function(self, ...)
@@ -80,12 +82,12 @@ function GameCommon:define()
             if not GameCommon.receivers[kind] then
                 GameCommon.receivers[kind] = function(self, time, physicsId, ...)
                     (function (...)
-                        local obj = self.physicsObjects[physicsId]
+                        local obj = self.physicsIdToObject[physicsId]
                         if not obj then
                             error("no / bad `physicsId` given as first parameter to '" .. kind .. "'")
                         end
                         obj[methodName](obj, ...)
-                    end)(self:resolvePhysicsIds(...))
+                    end)(self:physics_resolveIds(...))
                 end
 
                 GameCommon[kind] = function(self, ...)
@@ -110,6 +112,38 @@ function GameCommon:define()
         'setRatio', 'setRestitution', 'setSensor', 'setSleepingAllowed',
         'setSpringDampingRatio', 'setSpringFrequency', 'setTangentSpeed', 'setTarget',
         'setType', 'setUpperLimit', 'setX', 'setY',
+    })
+
+    self:defineMessageKind('physics_destroyObject', {
+        to = 'all',
+        reliable = true,
+        channel = MIN_PHYSICS_CHANNEL,
+        selfSend = true,
+        forward = true,
+    })
+
+    self:defineMessageKind('physics_setOwnership', {
+        to = 'all',
+        reliable = true,
+        channel = MIN_PHYSICS_CHANNEL,
+        selfSend = true,
+        forward = true,
+    })
+
+    self:defineMessageKind('physics_serverBodySync', {
+        from = 'server',
+        channel = MIN_PHYSICS_CHANNEL + 1,
+        reliable = false,
+        rate = 20,
+        selfSend = false,
+    })
+
+    self:defineMessageKind('physics_clientBodySync', {
+        from = 'client',
+        channel = MIN_PHYSICS_CHANNEL + 2,
+        reliable = false,
+        rate = 35,
+        selfSend = false,
     })
 
     --
@@ -137,7 +171,18 @@ end
 function GameCommon:start()
     self.mes = {}
 
-    self.physicsObjects = {} -- `physicsId` -> `World` / `Body` / `Fixture` / `Shape` / ...
+    self.physicsIdToObject = {} -- `physicsId` -> `World` / `Body` / `Fixture` / `Shape` / ...
+    self.physicsObjectToId = {}
+
+    self.physicsObjectIdToOwnerId = {} -- `physicsId` -> `clientId`
+    self.physicsOwnerIdToObjectIds = {} -- `clientId` -> `physicsId` -> `true`
+    setmetatable(self.physicsOwnerIdToObjectIds, {
+        __index = function(t, k)
+            local v = {}
+            t[k] = v
+            return v
+        end
+    })
 
     self.mainWorldId = nil
 end
@@ -152,18 +197,75 @@ end
 
 -- Physics
 
-function GameCommon:resolvePhysicsIds(...)
+function GameCommon:physics_resolveIds(...)
     if select('#', ...) == 0 then
         return
     end
     local firstArg = select(1, ...)
-    return self.physicsObjects[firstArg] or firstArg, self:resolvePhysicsIds(select(2, ...))
+    return self.physicsIdToObject[firstArg] or firstArg, self:physics_resolveIds(select(2, ...))
 end
 
 function GameCommon.receivers:physics_destroyObject(time, physicsId)
-    local obj = self.physicsObjects[physicsId]
-    if obj then
-        obj:destroy()
+    local obj = self.physicsIdToObject[physicsId]
+    if not obj then
+        error("physics_destroyObject: no / bad `physicsId`")
+    end
+
+    self.physicsIdToObject[physicsId] = nil
+    self.physicsObjectToId[obj] = nil
+
+    obj:destroy()
+end
+
+function GameCommon.receivers:physics_setOwnership(time, physicsId, newOwnerId)
+    local currentOwnerId = self.physicsObjectIdToOwnerId[physicsId]
+    if newOwnerId == nil then -- Removing owner
+        if currentOwnerId == nil then
+            return
+        else
+            self.physicsObjectIdToOwnerId[physicsId] = nil
+            self.physicsOwnerIdToObjectIds[newOwnerId][physicsId] = nil
+        end
+    else -- Setting owner
+        if currentOwnerId ~= nil then -- Already owned by someone?
+            if currentOwnerId == newOwnerId then
+                return -- Already owned by this client, nothing to do
+            else
+                error("physics_setOwnership: object already owned by different client")
+            end
+        end
+
+        self.physicsObjectIdToOwnerId[physicsId] = newOwnerId
+        self.physicsOwnerIdToObjectIds[newOwnerId][physicsId] = true
+    end
+end
+
+function GameCommon:physics_getBodySync(body)
+    local x, y = body:getPosition()
+    local vx, vy = body:getLinearVelocity()
+    local a = body:getAngle()
+    local va = body:getAngularVelocity()
+    return x, y, vx, vy, a, va
+end
+
+function GameCommon:physics_applyBodySync(body, x, y, vx, vy, a, va)
+    body:setPosition(x, y)
+    body:setLinearVelocity(vx, vy)
+    body:setAngle(a)
+    body:setAngularVelocity(va)
+end
+
+function GameCommon.receivers:physics_serverBodySync(time, bodyId, ...)
+    local body = self.physicsIdToObject[bodyId]
+    if body then
+        self:physics_applyBodySync(body, ...)
+    end
+end
+
+function GameCommon.receivers:physics_clientBodySync(time, bodyId, ...)
+    local body = self.physicsIdToObject[bodyId]
+    if body then
+        self:physics_applyBodySync(body, ...)
     end
 end
 
@@ -179,6 +281,6 @@ end
 
 function GameCommon:update(dt)
     if self.mainWorldId then
-        self.physicsObjects[self.mainWorldId]:update(dt)
+        self.physicsIdToObject[self.mainWorldId]:update(dt)
     end
 end
