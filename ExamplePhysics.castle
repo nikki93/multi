@@ -1,0 +1,7 @@
+main: ExamplePhysicsClient.lua
+multiplayer:
+    enabled: true
+    serverMain: ExamplePhysicsServer.lua
+title: Multiplayer physics example
+owner: nikki
+description: Physics example for my multiplayer library
