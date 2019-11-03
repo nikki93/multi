@@ -34,11 +34,12 @@ function GameCommon:define()
             local kind = 'physics_' .. methodName
 
             self:defineMessageKind(kind, {
-                from = 'server',
+                from = methodName ~= 'newMouseJoint' and 'server' or nil, -- Allow clients to create mouse joints
                 to = 'all',
                 reliable = true,
                 channel = MIN_PHYSICS_CHANNEL,
                 selfSend = true,
+                forward = true,
             })
 
             if not GameCommon.receivers[kind] then
@@ -122,7 +123,7 @@ function GameCommon:define()
         forward = true,
     })
 
-    self:defineMessageKind('physics_setOwnership', {
+    self:defineMessageKind('physics_setOwner', {
         to = 'all',
         reliable = true,
         channel = MIN_PHYSICS_CHANNEL,
@@ -144,6 +145,7 @@ function GameCommon:define()
         reliable = false,
         rate = 35,
         selfSend = false,
+        forward = false,
     })
 
     --
@@ -181,7 +183,7 @@ function GameCommon:start()
             local v = {}
             t[k] = v
             return v
-        end
+        end,
     })
 
     self.mainWorldId = nil
@@ -217,21 +219,21 @@ function GameCommon.receivers:physics_destroyObject(time, physicsId)
     obj:destroy()
 end
 
-function GameCommon.receivers:physics_setOwnership(time, physicsId, newOwnerId)
+function GameCommon.receivers:physics_setOwner(time, physicsId, newOwnerId)
     local currentOwnerId = self.physicsObjectIdToOwnerId[physicsId]
     if newOwnerId == nil then -- Removing owner
         if currentOwnerId == nil then
             return
         else
             self.physicsObjectIdToOwnerId[physicsId] = nil
-            self.physicsOwnerIdToObjectIds[newOwnerId][physicsId] = nil
+            self.physicsOwnerIdToObjectIds[currentOwnerId][physicsId] = nil
         end
     else -- Setting owner
         if currentOwnerId ~= nil then -- Already owned by someone?
             if currentOwnerId == newOwnerId then
                 return -- Already owned by this client, nothing to do
             else
-                error("physics_setOwnership: object already owned by different client")
+                error("physics_setOwner: object already owned by different client")
             end
         end
 
