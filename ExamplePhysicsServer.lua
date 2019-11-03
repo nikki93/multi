@@ -30,23 +30,34 @@ function GameServer.receivers:createMainWorld()
 
     do -- Ground
         local bodyId = self:physics_newBody(worldId, 800 / 2, 450 - 50 / 2)
-        local shapeId = self:physics_newRectangleShape(650, 50)
+        local shapeId = self:physics_newRectangleShape(800, 50)
         local fixtureId = self:physics_newFixture(bodyId, shapeId)
     end
 
-    do -- Ball
-        local bodyId = self:physics_newBody(worldId, 800 / 2, 450 / 2, 'dynamic')
+    do -- Left wall
+        local bodyId = self:physics_newBody(worldId, 50 / 2, 450 / 2)
+        local shapeId = self:physics_newRectangleShape(50, 450)
+        local fixtureId = self:physics_newFixture(bodyId, shapeId)
+    end
+
+    do -- Right wall
+        local bodyId = self:physics_newBody(worldId, 800 - 50 / 2, 450 / 2)
+        local shapeId = self:physics_newRectangleShape(50, 450)
+        local fixtureId = self:physics_newFixture(bodyId, shapeId)
+    end
+
+    for i = 1, 10 do -- Balls
+        local bodyId = self:physics_newBody(worldId, math.random(70, 800 - 70), math.random(0, 300), 'dynamic')
         local shapeId = self:physics_newCircleShape(20)
         local fixtureId = self:physics_newFixture(bodyId, shapeId, 1)
         self:physics_setRestitution(fixtureId, 0.9)
     end
 
-    do -- Ball 2
-        local bodyId = self:physics_newBody(worldId, 800 / 2, 0, 'dynamic')
-        local shapeId = self:physics_newCircleShape(20)
+    for i = 1, 10 do -- Boxes
+        local bodyId = self:physics_newBody(worldId, math.random(70, 800 - 70), math.random(0, 300), 'dynamic')
+        local shapeId = self:physics_newRectangleShape(40, 40)
         local fixtureId = self:physics_newFixture(bodyId, shapeId, 1)
         self:physics_setRestitution(fixtureId, 0.9)
-        self:physics_setLinearVelocity(bodyId, 0, 200)
     end
 
     self:send({ kind = 'mainWorldId' }, worldId)

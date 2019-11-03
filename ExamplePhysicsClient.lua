@@ -54,7 +54,10 @@ function GameClient:update(dt)
 
     -- Move mouse joint target
     if self.mouseJointId then
-        self:physics_setTarget(self.mouseJointId, love.mouse.getPosition())
+        self:send({
+            kind = 'physics_setTarget',
+            reliable = false,
+        }, self.mouseJointId, love.mouse.getPosition())
     end
 
     -- Common update
@@ -75,7 +78,7 @@ end
 -- Keyboard
 
 function GameClient:keypressed(key)
-    if key == 'space' then
+    if key == 'return' then
         self:send({ kind = 'createMainWorld' })
     end
 end
@@ -130,6 +133,21 @@ function GameClient:draw()
     if self.mainWorldId then
         local world = self.physicsIdToObject[self.mainWorldId]
         for _, body in ipairs(world:getBodies()) do
+            local bodyId = self.physicsObjectToId[body]
+            local ownerId = self.physicsObjectIdToOwnerId[bodyId]
+
+            -- White if no owner, green if owned by us, red if owner by other
+            if ownerId then
+                if ownerId ~= self.clientId then
+                    love.graphics.setColor(0, 0, 1)
+                else
+                    love.graphics.setColor(0, 1, 0)
+                end
+            else
+                love.graphics.setColor(1, 1, 1)
+            end
+
+            -- Draw shapes
             for _, fixture in ipairs(body:getFixtures()) do
                 local shape = fixture:getShape()
                 local ty = shape:getType()
@@ -140,6 +158,14 @@ function GameClient:draw()
                 elseif ty == 'edge' then
                 elseif ty == 'chain' then
                 end
+            end
+
+            -- Draw owner avatar
+            if ownerId then
+                local image = self.photoImages[ownerId]
+                local x, y = body:getPosition()
+                love.graphics.setColor(1, 1, 1)
+                love.graphics.draw(image, x - 15, y - 15, 0, 30 / image:getWidth(), 30 / image:getHeight())
             end
         end
     end
