@@ -88,9 +88,9 @@ end
 
 function GameClient:mousepressed(x, y, button)
     if button == 1 then
-        if self.mainWorldId then
+        if self.mainWorld then
             local body
-            self.physicsIdToObject[self.mainWorldId]:queryBoundingBox(
+            self.mainWorld:queryBoundingBox(
                 x - 1, y - 1, x + 1, y + 1,
                 function(fixture)
                     body = fixture:getBody()
@@ -130,9 +130,8 @@ end
 -- Draw
 
 function GameClient:draw()
-    if self.mainWorldId then
-        local world = self.physicsIdToObject[self.mainWorldId]
-        for _, body in ipairs(world:getBodies()) do
+    if self.mainWorld then
+        for _, body in ipairs(self.mainWorld:getBodies()) do
             local bodyId = self.physicsObjectToId[body]
             local ownerId = self.physicsObjectIdToOwnerId[bodyId]
 

@@ -71,8 +71,8 @@ function GameServer:update(dt)
     GameCommon.update(self, dt)
 
     -- Send body syncs
-    if self.mainWorldId then
-        for _, body in ipairs(self.physicsIdToObject[self.mainWorldId]:getBodies()) do
+    if self.mainWorld then
+        for _, body in ipairs(self.mainWorld:getBodies()) do
             if body:isAwake() then
                 local bodyId = self.physicsObjectToId[body]
                 local ownerId = self.physicsObjectIdToOwnerId[bodyId]

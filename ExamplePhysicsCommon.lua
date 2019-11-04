@@ -282,7 +282,13 @@ end
 -- Update
 
 function GameCommon:update(dt)
-    if self.mainWorldId then
-        self.physicsIdToObject[self.mainWorldId]:update(dt)
+    if not self.mainWorld then
+        if self.mainWorldId then
+            self.mainWorld = self.physicsIdToObject[self.mainWorldId]
+        end
+    end
+
+    if self.mainWorld then
+        self.mainWorld:update(dt)
     end
 end
