@@ -14,7 +14,7 @@ function GameClient:start()
 
     self.photoImages = {}
 
-    self.mouseJointId = nil
+    self.mouseTouchId = nil
 end
 
 
@@ -66,14 +66,6 @@ function GameClient:update(dt)
         return
     end
 
-    -- Move mouse joint target
-    if self.mouseJointId then
-        self:send({
-            kind = 'physics_setTarget',
-            reliable = false,
-        }, self.mouseJointId, love.mouse.getPosition())
-    end
-
     -- Common update
     GameCommon.update(self, dt)
 
@@ -102,46 +94,23 @@ end
 
 function GameClient:mousepressed(x, y, button)
     if button == 1 then
-        if self.mainWorld then
-            local body
-            self.mainWorld:queryBoundingBox(
-                x - 1, y - 1, x + 1, y + 1,
-                function(fixture)
-                    body = fixture:getBody()
-                    return false
-                end)
-            if body then
-                local bodyId = self.physicsObjectToId[body]
-                local ownerId = self.physicsObjectIdToOwnerId[bodyId]
-                if not (ownerId ~= nil and ownerId ~= self.clientId) then
-                    self:send({
-                        kind = 'physics_setOwner',
-                    }, bodyId, self.clientId)
-                    self.mouseJointId = self:physics_newMouseJoint(bodyId, x, y)
-                end
-            end
-        end
+        self.mouseTouchId = self:generateId()
+        self:send({ kind = 'addTouch' }, self.clientId, self.mouseTouchId, x, y)
     end
 end
 
 function GameClient:mousereleased(x, y, button)
     if button == 1 then
-        if self.mouseJointId then
-            local body = self.physicsIdToObject[self.mouseJointId]:getBodies()
-            local bodyId = self.physicsObjectToId[body]
-
-            network.async(function() -- Unset as owner after a slight delay
-                copas.sleep(0.8)
-                self:send({
-                    kind = 'physics_setOwner',
-                }, bodyId, nil)
-            end)
-
-            self:send({
-                kind = 'physics_destroyObject',
-            }, self.mouseJointId)
-            self.mouseJointId = nil
+        if self.mouseTouchId then
+            self:send({ kind = 'removeTouch' }, self.mouseTouchId)
+            self.mouseTouchId = nil
         end
+    end
+end
+
+function GameClient:mousemoved(x, y)
+    if self.mouseTouchId then
+        self:send({ kind = 'touchPosition' }, self.mouseTouchId, x, y)
     end
 end
 

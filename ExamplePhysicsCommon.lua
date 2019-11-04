@@ -1,6 +1,15 @@
 love.physics.setMeter(64)
 
 
+MAIN_RELIABLE_CHANNEL = 0
+
+PHYSICS_RELIABLE_CHANNEL = 100
+PHYSICS_SERVER_SYNCS_CHANNEL = 101
+PHYSICS_CLIENT_SYNCS_CHANNEL = 102
+
+TOUCHES_CHANNEL = 50
+
+
 -- Define
 
 function GameCommon:define()
@@ -11,14 +20,14 @@ function GameCommon:define()
     -- Server sends full state to a new client when it connects
     self:defineMessageKind('fullState', {
         reliable = true,
-        channel = 0,
+        channel = MAIN_RELIABLE_CHANNEL,
         selfSend = false,
     })
 
     -- Client sends user profile info when it connects, forwarded to all and self
     self:defineMessageKind('me', {
         reliable = true,
-        channel = 0,
+        channel = MAIN_RELIABLE_CHANNEL,
         selfSend = true,
         forward = true,
     })
@@ -27,17 +36,15 @@ function GameCommon:define()
     -- Physics
     --
 
-    local MIN_PHYSICS_CHANNEL = 100
-
     local function definePhysicsConstructors(methodNames) -- For `love.physics.new<X>`, first arg is new `physicsId`
         for _, methodName in ipairs(methodNames) do
             local kind = 'physics_' .. methodName
 
             self:defineMessageKind(kind, {
-                from = methodName ~= 'newMouseJoint' and 'server' or nil, -- Allow clients to create mouse joints
+                from = 'server',
                 to = 'all',
                 reliable = true,
-                channel = MIN_PHYSICS_CHANNEL,
+                channel = PHYSICS_RELIABLE_CHANNEL,
                 selfSend = true,
                 forward = true,
             })
@@ -75,7 +82,7 @@ function GameCommon:define()
             self:defineMessageKind(kind, {
                 to = 'all',
                 reliable = true,
-                channel = MIN_PHYSICS_CHANNEL,
+                channel = PHYSICS_RELIABLE_CHANNEL,
                 selfSend = true,
                 forward = true,
             })
@@ -116,9 +123,10 @@ function GameCommon:define()
     })
 
     self:defineMessageKind('physics_destroyObject', {
+        from = 'server',
         to = 'all',
         reliable = true,
-        channel = MIN_PHYSICS_CHANNEL,
+        channel = PHYSICS_RELIABLE_CHANNEL,
         selfSend = true,
         forward = true,
     })
@@ -126,14 +134,14 @@ function GameCommon:define()
     self:defineMessageKind('physics_setOwner', {
         to = 'all',
         reliable = true,
-        channel = MIN_PHYSICS_CHANNEL,
+        channel = PHYSICS_RELIABLE_CHANNEL,
         selfSend = true,
         forward = true,
     })
 
     self:defineMessageKind('physics_serverBodySyncs', {
         from = 'server',
-        channel = MIN_PHYSICS_CHANNEL + 1,
+        channel = PHYSICS_SERVER_SYNCS_CHANNEL,
         reliable = false,
         rate = 10,
         selfSend = false,
@@ -141,7 +149,7 @@ function GameCommon:define()
 
     self:defineMessageKind('physics_clientBodySync', {
         from = 'client',
-        channel = MIN_PHYSICS_CHANNEL + 2,
+        channel = PHYSICS_CLIENT_SYNCS_CHANNEL,
         reliable = false,
         rate = 30,
         selfSend = false,
@@ -152,17 +160,56 @@ function GameCommon:define()
     -- Scene
     --
 
+    -- Client requests server to create the scene
     self:defineMessageKind('createMainWorld', {
         reliable = true,
-        channel = 0,
+        channel = MAIN_RELIABLE_CHANNEL,
         forward = false,
         selfSend = false,
     })
 
+    -- Client receives `physicsId` of the world when the scene is created
     self:defineMessageKind('mainWorldId', {
         to = 'all',
         reliable = true,
-        channel = 0,
+        channel = MAIN_RELIABLE_CHANNEL,
+        selfSend = true,
+    })
+
+    --
+    -- Touches
+    --
+
+    -- Client tells everyone about a touch press
+    self:defineMessageKind('addTouch', {
+        reliable = true,
+        channel = TOUCHES_CHANNEL,
+        forward = true,
+        selfSend = true,
+    })
+
+    -- Client tells everyone about a touch release
+    self:defineMessageKind('removeTouch', {
+        reliable = true,
+        channel = TOUCHES_CHANNEL,
+        forward = true,
+        selfSend = true,
+    })
+
+    -- Client tells everyone about a touch move
+    self:defineMessageKind('touchPosition', {
+        reliable = false,
+        channel = TOUCHES_CHANNEL,
+        forward = true,
+        selfSend = true,
+        rate = 30,
+    })
+
+    -- Server tells everyone to bind a touch to a mouse joint (for direct manipulation)
+    self:defineMessageKind('bindTouchMouseJoint', {
+        to = 'all',
+        reliable = true,
+        channel = TOUCHES_CHANNEL,
         selfSend = true,
     })
 end
@@ -187,6 +234,8 @@ function GameCommon:start()
     })
 
     self.mainWorldId = nil
+
+    self.touches = {} --> `touchId` -> `{ clientId, x, y, mouseJointId, positionHistory = { { time, x, y }, ... } }`
 end
 
 
@@ -281,15 +330,119 @@ function GameCommon.receivers:mainWorldId(time, mainWorldId)
 end
 
 
+-- Touches
+
+function GameCommon.receivers:addTouch(time, clientId, touchId, x, y)
+    -- Create touch entry
+    self.touches[touchId] = {
+        clientId = clientId,
+        x = x,
+        y = y,
+        mouseJointId = nil, -- Will be set in `bindTouchMouseJoint` handler
+        positionHistory = {
+            {
+                time = time,
+                x = x,
+                y = y,
+            },
+        },
+    }
+
+    if self.server then -- Only server should create the mouse joints
+        if self.mainWorld then
+            -- Find body under this touch
+            local body
+            self.mainWorld:queryBoundingBox(
+                x - 1, y - 1, x + 1, y + 1,
+                function(fixture)
+                    body = fixture:getBody()
+                    return false
+                end)
+
+            if body then
+                -- If found, create a mouse joint and bind the touch to it
+                local bodyId = self.physicsObjectToId[body]
+                local mouseJointId = self:physics_newMouseJoint(bodyId, x, y)
+                self:send({
+                    kind = 'bindTouchMouseJoint',
+                }, touchId, mouseJointId)
+            end
+        end
+    end
+end
+
+function GameCommon.receivers:removeTouch(time, touchId)
+    local touch = assert(self.touches[touchId], 'removeTouch: no such touch')
+
+    self.touches[touchId] = nil
+
+    if self.server then -- Only server should destroy the mouse joints
+        if touch.mouseJointId then
+            self:send({
+                kind = 'physics_destroyObject',
+            }, touch.mouseJointId)
+        end
+    end
+end
+
+function GameCommon.receivers:touchPosition(time, touchId, x, y)
+    local touch = assert(self.touches[touchId], 'touchPosition: no such touch')
+    table.insert(touch.positionHistory, {
+        time = time,
+        x = x,
+        y = y,
+    })
+end
+
+function GameCommon.receivers:bindTouchMouseJoint(time, touchId, mouseJointId)
+    local touch = assert(self.touches[touchId], 'bindTouchMouseJoint: no such touch')
+    touch.mouseJointId = mouseJointId
+end
+
+
 -- Update
 
 function GameCommon:update(dt)
+    -- Set `self.mainWorld` from `self.mainWorldId`
     if not self.mainWorld then
         if self.mainWorldId then
             self.mainWorld = self.physicsIdToObject[self.mainWorldId]
         end
     end
 
+    -- Interpolate touches and update their mouse joints
+    do
+        local interpTime = self.time - 0.15
+        for touchId, touch in pairs(self.touches) do
+            local history = touch.positionHistory
+
+            -- Remove position if next one is also before interpolation time -- we need one before and one after
+            while #history >= 2 and history[1].time < interpTime and history[2].time < interpTime do
+                table.remove(history, 1)
+            end
+
+            -- Update position
+            if #history >= 2 then
+                -- Have one before and one after, interpolate
+                local f = (interpTime - history[1].time) / (history[2].time - history[1].time)
+                local dx, dy = history[2].x - history[1].x, history[2].y - history[1].y
+                touch.x, touch.y = history[1].x + f * dx, history[1].y + f * dy
+            elseif #history == 1 then
+                -- Have only one before, just set
+                touch.x, touch.y = history[1].x, history[1].y
+            end
+
+            -- Update mouse joint, if bound to one
+            if touch.mouseJointId then
+                local mouseJoint = self.physicsIdToObject[touch.mouseJointId]
+                if mouseJoint then
+                    mouseJoint:setTarget(touch.x, touch.y)
+                end
+            end
+        end
+    end
+
+    -- Do a physics step
     if self.mainWorld then
         self.mainWorld:update(dt)
     end
