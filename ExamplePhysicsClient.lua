@@ -18,9 +18,31 @@ function GameClient:start()
 end
 
 
+-- Connect / disconnect
+
+function GameClient:connect()
+    GameCommon.connect(self)
+
+    -- Send `me`
+    local me = castle.user.getMe()
+    self:send({ kind = 'me' }, self.clientId, me)
+end
+
+
+-- Full state
+
+function GameClient.receivers:fullState(time, state)
+    -- Read `me`s and load photos -- here we merge because we may have set our own `me` already
+    for clientId, me in pairs(state.mes) do
+        self.mes[clientId] = me
+        self:loadPhotoImage(clientId)
+    end
+end
+
+
 -- Mes
 
-function GameClient:loadPhoto(clientId)
+function GameClient:loadPhotoImage(clientId)
     local photoUrl = self.mes[clientId].photoUrl
     if photoUrl then
         network.async(function()
@@ -32,18 +54,7 @@ end
 function GameClient.receivers:me(time, clientId, me)
     GameCommon.receivers.me(self, time, clientId, me)
 
-    self:loadPhoto(clientId)
-end
-
-
--- Connect / disconnect
-
-function GameClient:connect()
-    GameCommon.connect(self)
-
-    -- Send `me`
-    local me = castle.user.getMe()
-    self:send({ kind = 'me' }, self.clientId, me)
+    self:loadPhotoImage(clientId)
 end
 
 

@@ -12,6 +12,7 @@ function GameServer:connect(clientId)
         to = clientId,
         kind = 'fullState',
     }, {
+        mes = self.mes,
     })
 end
 
