@@ -119,7 +119,7 @@ function GameClient:mousereleased(x, y, button)
             local body = self.physicsIdToObject[self.mouseJointId]:getBodies()
             local bodyId = self.physicsObjectToId[body]
 
-            network.async(function()
+            network.async(function() -- Unset as owner after a slight delay
                 copas.sleep(0.8)
                 self:send({
                     kind = 'physics_setOwner',
