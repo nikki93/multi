@@ -1,3 +1,6 @@
+local copas = require 'copas'
+
+
 require 'client' -- You would use the full 'https://...' raw URI to 'client.lua' here
 
 
@@ -115,9 +118,14 @@ function GameClient:mousereleased(x, y, button)
         if self.mouseJointId then
             local body = self.physicsIdToObject[self.mouseJointId]:getBodies()
             local bodyId = self.physicsObjectToId[body]
-            self:send({
-                kind = 'physics_setOwner',
-            }, bodyId, nil)
+
+            network.async(function()
+                copas.sleep(0.8)
+                self:send({
+                    kind = 'physics_setOwner',
+                }, bodyId, nil)
+            end)
+
             self:send({
                 kind = 'physics_destroyObject',
             }, self.mouseJointId)
