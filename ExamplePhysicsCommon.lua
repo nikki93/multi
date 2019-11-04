@@ -131,11 +131,11 @@ function GameCommon:define()
         forward = true,
     })
 
-    self:defineMessageKind('physics_serverBodySync', {
+    self:defineMessageKind('physics_serverBodySyncs', {
         from = 'server',
         channel = MIN_PHYSICS_CHANNEL + 1,
         reliable = false,
-        rate = 20,
+        rate = 10,
         selfSend = false,
     })
 
@@ -143,9 +143,9 @@ function GameCommon:define()
         from = 'client',
         channel = MIN_PHYSICS_CHANNEL + 2,
         reliable = false,
-        rate = 35,
+        rate = 30,
         selfSend = false,
-        forward = false,
+        forward = true,
     })
 
     --
@@ -257,10 +257,12 @@ function GameCommon:physics_applyBodySync(body, x, y, vx, vy, a, va)
     body:setAngularVelocity(va)
 end
 
-function GameCommon.receivers:physics_serverBodySync(time, bodyId, ...)
-    local body = self.physicsIdToObject[bodyId]
-    if body then
-        self:physics_applyBodySync(body, ...)
+function GameCommon.receivers:physics_serverBodySyncs(time, syncs)
+    for bodyId, sync in pairs(syncs) do
+        local body = self.physicsIdToObject[bodyId]
+        if body then
+            self:physics_applyBodySync(body, unpack(sync))
+        end
     end
 end
 

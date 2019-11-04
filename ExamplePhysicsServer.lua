@@ -50,14 +50,14 @@ function GameServer.receivers:createMainWorld()
         local bodyId = self:physics_newBody(worldId, math.random(70, 800 - 70), math.random(0, 300), 'dynamic')
         local shapeId = self:physics_newCircleShape(20)
         local fixtureId = self:physics_newFixture(bodyId, shapeId, 1)
-        self:physics_setRestitution(fixtureId, 0.9)
+        -- self:physics_setRestitution(fixtureId, 0.9)
     end
 
     for i = 1, 10 do -- Boxes
         local bodyId = self:physics_newBody(worldId, math.random(70, 800 - 70), math.random(0, 300), 'dynamic')
         local shapeId = self:physics_newRectangleShape(40, 40)
         local fixtureId = self:physics_newFixture(bodyId, shapeId, 1)
-        self:physics_setRestitution(fixtureId, 0.9)
+        -- self:physics_setRestitution(fixtureId, 0.9)
     end
 
     self:send({ kind = 'mainWorldId' }, worldId)
@@ -72,19 +72,21 @@ function GameServer:update(dt)
 
     -- Send body syncs
     if self.mainWorld then
-        for _, body in ipairs(self.mainWorld:getBodies()) do
-            if body:isAwake() then
-                local bodyId = self.physicsObjectToId[body]
-                local ownerId = self.physicsObjectIdToOwnerId[bodyId]
-                for clientId in pairs(self._clientIds) do
-                    if clientId ~= ownerId then -- Don't send a sync to the owner of this object
-                        self:send({
-                            kind = 'physics_serverBodySync',
-                            to = clientId,
-                        }, bodyId, self:physics_getBodySync(body))
+        for clientId in pairs(self._clientIds) do
+            local syncs = {}
+            for _, body in ipairs(self.mainWorld:getBodies()) do
+                if body:isAwake() then
+                    local bodyId = self.physicsObjectToId[body]
+                    local ownerId = self.physicsObjectIdToOwnerId[bodyId]
+                    if ownerId == nil then -- Clients will send syncs for bodies they own
+                        syncs[bodyId] = { self:physics_getBodySync(body) }
                     end
                 end
             end
+            self:send({
+                kind = 'physics_serverBodySyncs',
+                to = clientId,
+            }, syncs)
         end
     end
 end

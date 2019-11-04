@@ -138,7 +138,7 @@ function GameClient:draw()
             -- White if no owner, green if owned by us, red if owner by other
             if ownerId then
                 if ownerId ~= self.clientId then
-                    love.graphics.setColor(0, 0, 1)
+                    love.graphics.setColor(1, 0, 0)
                 else
                     love.graphics.setColor(0, 1, 0)
                 end
