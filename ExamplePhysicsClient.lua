@@ -74,7 +74,7 @@ function GameClient:update(dt)
     if self.mouseTouchId then
         local x, y = love.mouse.getPosition()
         local dx, dy = x - self.mousePrevX, y - self.mousePrevY
-        self:send({ kind = 'touchPosition' }, self.mouseTouchId, x, y, dx / dt, dy / dt)
+        self:send({ kind = 'touchPosition' }, self.mouseTouchId, x, y)
         self.mousePrevX, self.mousePrevY = x, y
     end
 
@@ -110,13 +110,14 @@ function GameClient:mousepressed(x, y, button)
                 function(fixture)
                     local candidateBody = fixture:getBody()
                     local candidateBodyId = self.physicsObjectToId[candidateBody]
-                    if not self.bodyIdToTouchId[candidateBodyId] then
+                    local touchId = self.bodyIdToTouchId[candidateBodyId]
+                    if not (touchId and self.touches[touchId].clientId ~= self.clientId) then
                         body, bodyId = candidateBody, candidateBodyId
                         return false
                     end
                 end)
             if body then
-                local localX, localY = x - body:getX(), y - body:getY()
+                local localX, localY = body:getLocalPoint(x, y)
                 self.mouseTouchId = self:generateId()
                 self:send({ kind = 'addTouch' }, self.clientId, self.mouseTouchId, x, y, bodyId, localX, localY)
                 self.mousePrevX, self.mousePrevY = x, y
