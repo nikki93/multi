@@ -94,8 +94,24 @@ end
 
 function GameClient:mousepressed(x, y, button)
     if button == 1 then
-        self.mouseTouchId = self:generateId()
-        self:send({ kind = 'addTouch' }, self.clientId, self.mouseTouchId, x, y)
+        if self.mainWorld then
+            local body, bodyId
+            self.mainWorld:queryBoundingBox(
+                x - 1, y - 1, x + 1, y + 1,
+                function(fixture)
+                    local candidateBody = fixture:getBody()
+                    local candidateBodyId = self.physicsObjectToId[candidateBody]
+                    if not self.bodyIdToTouchId[candidateBodyId] then
+                        body, bodyId = candidateBody, candidateBodyId
+                        return false
+                    end
+                end)
+            if body then
+                local localX, localY = x - body:getX(), y - body:getY()
+                self.mouseTouchId = self:generateId()
+                self:send({ kind = 'addTouch' }, self.clientId, self.mouseTouchId, x, y, bodyId, localX, localY)
+            end
+        end
     end
 end
 
@@ -121,11 +137,12 @@ function GameClient:draw()
     if self.mainWorld then
         for _, body in ipairs(self.mainWorld:getBodies()) do
             local bodyId = self.physicsObjectToId[body]
-            local ownerId = self.physicsObjectIdToOwnerId[bodyId]
+            local touchId = self.bodyIdToTouchId[bodyId]
+            local holderId = touchId and self.touches[touchId].clientId
 
-            -- White if no owner, green if owned by us, red if owner by other
-            if ownerId then
-                if ownerId ~= self.clientId then
+            -- White if no holder, green if held by us, red if held by other
+            if holderId then
+                if holderId ~= self.clientId then
                     love.graphics.setColor(1, 0, 0)
                 else
                     love.graphics.setColor(0, 1, 0)
@@ -148,8 +165,8 @@ function GameClient:draw()
             end
 
             -- Draw owner avatar
-            if ownerId then
-                local image = self.photoImages[ownerId]
+            if holderId then
+                local image = self.photoImages[holderId]
                 if image then
                     local x, y = body:getPosition()
                     love.graphics.setColor(1, 1, 1)

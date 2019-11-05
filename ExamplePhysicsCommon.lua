@@ -204,15 +204,6 @@ function GameCommon:define()
         selfSend = true,
         rate = 30,
     })
-
-    -- Server tells everyone to bind a touch to a body
-    self:defineMessageKind('bindTouchToBody', {
-        from = 'server',
-        to = 'all',
-        reliable = true,
-        channel = TOUCHES_CHANNEL,
-        selfSend = true,
-    })
 end
 
 
@@ -236,7 +227,7 @@ function GameCommon:start()
 
     self.mainWorldId = nil
 
-    self.touches = {} --> `touchId` -> `{ clientId, x, y, binding = { bodyId, localX, localY, weldBody, weldJoint }, positionHistory = { { time, x, y }, ... } }`
+    self.touches = {} --> `touchId` -> `{ clientId, finished, x, y, binding = { bodyId, localX, localY }, positionHistory = { { time, x, y }, ... } }`
     self.bodyIdToTouchId = {}
 end
 
@@ -334,10 +325,11 @@ end
 
 -- Touches
 
-function GameCommon.receivers:addTouch(time, clientId, touchId, x, y)
+function GameCommon.receivers:addTouch(time, clientId, touchId, x, y, bodyId, localX, localY)
     -- Create touch entry
     self.touches[touchId] = {
         clientId = clientId,
+        finished = false,
         x = x,
         y = y,
         positionHistory = {
@@ -347,42 +339,18 @@ function GameCommon.receivers:addTouch(time, clientId, touchId, x, y)
                 y = y,
             },
         },
-
-        -- Will be set by `bindTouchToBody`
-        binding = nil,
+        binding = {
+            bodyId = bodyId,
+            localX = localX,
+            localY = localY,
+        },
     }
-
-    if self.server then -- Only server should bind touches to bodies
-        if self.mainWorld then
-            local body, bodyId
-            self.mainWorld:queryBoundingBox(
-                x - 1, y - 1, x + 1, y + 1,
-                function(fixture)
-                    local candidateBody = fixture:getBody()
-                    local candidateBodyId = self.physicsObjectToId[candidateBody]
-                    if not self.bodyIdToTouchId[candidateBodyId] then
-                        body, bodyId = candidateBody, candidateBodyId
-                        return false
-                    end
-                end)
-            if body then
-                local localX, localY = x - body:getX(), y - body:getY()
-                self:send({
-                    kind = 'bindTouchToBody',
-                }, touchId, bodyId, localX, localY)
-            end
-        end
-    end
+    self.bodyIdToTouchId[bodyId] = touchId
 end
 
 function GameCommon.receivers:removeTouch(time, touchId)
     local touch = assert(self.touches[touchId], 'removeTouch: no such touch')
-
-    if touch.binding then -- Free the binding
-        self.bodyIdToTouchId[touch.binding.bodyId] = nil
-    end
-
-    self.touches[touchId] = nil
+    touch.finished = true -- Simply mark and don't remove yet so we can do one more interpolation step
 end
 
 function GameCommon.receivers:touchPosition(time, touchId, x, y)
@@ -392,16 +360,6 @@ function GameCommon.receivers:touchPosition(time, touchId, x, y)
         x = x,
         y = y,
     })
-end
-
-function GameCommon.receivers:bindTouchToBody(time, touchId, bodyId, localX, localY)
-    local touch = assert(self.touches[touchId], 'bindTouchMouseJoint: no such touch')
-    touch.binding = {
-        bodyId = bodyId,
-        localX = localX,
-        localY = localY,
-    }
-    self.bodyIdToTouchId[bodyId] = touchId
 end
 
 
@@ -417,7 +375,7 @@ function GameCommon:update(dt)
 
     -- Interpolate touches and apply forces to bound bodies
     do
-        local interpTime = self.time - 0.15
+        local interpTime = self.time - 0.13
         for touchId, touch in pairs(self.touches) do
             local history = touch.positionHistory
 
@@ -437,7 +395,7 @@ function GameCommon:update(dt)
                 touch.x, touch.y = history[1].x, history[1].y
             end
 
-            -- If bound to a body, apply a force on it
+            -- If bound to a body, apply an impulse on it
             if touch.binding then
                 local body = self.physicsIdToObject[touch.binding.bodyId]
 
@@ -448,6 +406,15 @@ function GameCommon:update(dt)
                 body:setLinearVelocity(0, 0)
                 body:setAngularVelocity(0)
                 body:setLinearVelocity(dispX / dt, dispY / dt)
+            end
+
+            -- If the touch is finished, remove it
+            if touch.finished then
+                if touch.binding then -- Free the binding
+                    self.bodyIdToTouchId[touch.binding.bodyId] = nil
+                end
+
+                self.touches[touchId] = nil
             end
         end
     end
