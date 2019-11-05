@@ -188,13 +188,20 @@ function GameClient:draw()
                     holderId = touch.clientId
 
                     local startX, startY = body:getWorldPoint(touch.localX, touch.localY)
-                    local localTouch = self.localTouches[touchId]
-                    table.insert(touchLines, {
-                        startX,
-                        startY,
-                        localTouch and localTouch.prevX or touch.x,
-                        localTouch and localTouch.prevY or touch.y,
-                    })
+
+                    local localTouchX, localTouchY
+                    for _, localTouch in pairs(self.localTouches) do
+                        if localTouch.touchId == touchId then
+                            if loveTouchId == 'mouse' then
+                                localTouchX, localTouchY = love.mouse.getPosition()
+                            else
+                                localTouchX, localTouchY = love.touch.getPosition(loveTouchId)
+                            end
+                            break
+                        end
+                    end
+
+                    table.insert(touchLines, { startX, startY, localX or touch.x, localY or touch.y })
                 end
             end
 
