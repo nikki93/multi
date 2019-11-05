@@ -193,7 +193,8 @@ function GameCommon:define()
         reliable = true,
         channel = TOUCHES_CHANNEL,
         forward = true,
-        selfSend = true,
+        forwardToOrigin = true,
+        selfSend = false,
     })
 
     -- Client tells everyone about a touch move
@@ -201,7 +202,8 @@ function GameCommon:define()
         reliable = false,
         channel = TOUCHES_CHANNEL,
         forward = true,
-        selfSend = true,
+        forwardToOrigin = true,
+        selfSend = false,
         rate = 30,
     })
 end
@@ -350,7 +352,12 @@ end
 
 function GameCommon.receivers:removeTouch(time, touchId)
     local touch = assert(self.touches[touchId], 'removeTouch: no such touch')
-    touch.finished = true -- Simply mark and don't remove yet so we can do one more interpolation step
+
+    if touch.binding then -- Free the binding
+        self.bodyIdToTouchId[touch.binding.bodyId] = nil
+    end
+
+    self.touches[touchId] = nil
 end
 
 function GameCommon.receivers:touchPosition(time, touchId, x, y)
@@ -406,15 +413,6 @@ function GameCommon:update(dt)
                 body:setLinearVelocity(0, 0)
                 body:setAngularVelocity(0)
                 body:setLinearVelocity(dispX / dt, dispY / dt)
-            end
-
-            -- If the touch is finished, remove it
-            if touch.finished then
-                if touch.binding then -- Free the binding
-                    self.bodyIdToTouchId[touch.binding.bodyId] = nil
-                end
-
-                self.touches[touchId] = nil
             end
         end
     end

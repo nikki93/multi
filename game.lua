@@ -116,6 +116,8 @@ function Game:defineMessageKind(kind, defaults)
 end
 
 function Game:send(opts, ...)
+    local time = opts.time or self.time
+
     local kind = opts.kind
     assert(type(kind) == 'string', 'send: `kind` needs to be a string')
     local kindNum = assert(self._kindToNum[kind], "kind '" .. kind .. "' not defined")
@@ -155,7 +157,7 @@ function Game:send(opts, ...)
         if self.server then
             local to = opts.to or defaults.to
             assert(type(to) == 'number' or to == 'all', "send: `to` needs to be a number or 'all'")
-            self.server.sendExt(to, channel, flag, kindNum, self.time, false, nil, nil, ...)
+            self.server.sendExt(to, channel, flag, kindNum, time, false, nil, nil, ...)
         end
         if self.client then
             local forward = opts.forward
@@ -164,9 +166,9 @@ function Game:send(opts, ...)
             end
             assert(type(forward) == 'boolean', 'send: `forward` needs to be a boolean')
             if forward then
-                self.client.sendExt(channel, flag, kindNum, self.time, true, channel, reliable, ...)
+                self.client.sendExt(channel, flag, kindNum, time, true, channel, reliable, ...)
             else
-                self.client.sendExt(channel, flag, kindNum, self.time, false, nil, nil, ...)
+                self.client.sendExt(channel, flag, kindNum, time, false, nil, nil, ...)
             end
         end
     end
@@ -177,7 +179,7 @@ function Game:send(opts, ...)
     end
     assert(type(selfSend) == 'boolean', 'send: `selfSend` needs to be a boolean')
     if selfSend then
-        self:_receive(self.clientId, kindNum, self.time, false, nil, nil, ...)
+        self:_receive(self.clientId, kindNum, time, false, nil, nil, ...)
     end
 end
 
@@ -197,9 +199,12 @@ function Game:_receive(fromClientId, kindNum, time, forward, channel, reliable, 
 
     -- If forwarding, do that immediately
     if self.server and forward then
+        local defaults = self._kindDefaults[self._numToKind[kindNum]]
+        local forwardToOrigin = defaults.forwardToOrigin
+
         local flag = reliable and 'reliable' or 'unreliable'
         for clientId in pairs(self._clientIds) do
-            if clientId ~= fromClientId then
+            if forwardToOrigin or clientId ~= fromClientId then
                 self.server.sendExt(clientId, channel, flag, kindNum, time, false, nil, nil, ...)
             end
         end
