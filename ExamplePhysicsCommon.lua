@@ -235,7 +235,6 @@ function GameCommon:start()
     self.mainWorldId = nil
 
     self.touches = {}
-    self.bodyIdToTouchId = {}
 end
 
 
@@ -358,7 +357,6 @@ function GameCommon.receivers:addTouch(time, clientId, touchId, x, y, bodyId, lo
 
     -- Add to tables
     self.touches[touchId] = touch
-    self.bodyIdToTouchId[bodyId] = touchId
 end
 
 function GameCommon.receivers:removeTouch(time, touchId)
@@ -366,10 +364,6 @@ function GameCommon.receivers:removeTouch(time, touchId)
 
     if touch.mouseJoint then
         touch.mouseJoint:destroy()
-    end
-
-    if touch.bodyId then
-        self.bodyIdToTouchId[touch.bodyId] = nil
     end
 
     self.touches[touchId] = nil

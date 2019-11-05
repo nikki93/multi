@@ -125,11 +125,15 @@ function GameClient:touchpressed(loveTouchId, x, y)
             function(fixture)
                 local candidateBody = fixture:getBody()
                 local candidateBodyId = self.physicsObjectToId[candidateBody]
-                local touchId = self.bodyIdToTouchId[candidateBodyId]
-                if not (touchId and self.touches[touchId].clientId ~= self.clientId) then
-                    body, bodyId = candidateBody, candidateBodyId
-                    return false
+
+                for _, touch in pairs(self.touches) do
+                    if touch.bodyId == candidateBodyId and touch.clientId ~= self.clientId then
+                        return true
+                    end
                 end
+
+                body, bodyId = candidateBody, candidateBodyId
+                return false
             end)
         if body then
             local localX, localY = body:getLocalPoint(x, y)
@@ -161,8 +165,13 @@ function GameClient:draw()
     if self.mainWorld then
         for _, body in ipairs(self.mainWorld:getBodies()) do
             local bodyId = self.physicsObjectToId[body]
-            local touchId = self.bodyIdToTouchId[bodyId]
-            local holderId = touchId and self.touches[touchId].clientId
+            local holderId
+            for _, touch in pairs(self.touches) do
+                if touch.bodyId == bodyId then
+                    holderId = touch.clientId
+                    break
+                end
+            end
 
             -- White if no holder, green if held by us, red if held by other
             if holderId then

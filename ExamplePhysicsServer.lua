@@ -59,9 +59,9 @@ function GameServer.receivers:createMainWorld()
         local fixtureId = self:physics_newFixture(bodyId, shapeId, 1)
     end
 
-    for i = 1, 2 do -- Big boxes
+    do -- Big box
         local bodyId = self:physics_newBody(worldId, math.random(70, 800 - 70), math.random(0, 300), 'dynamic')
-        local shapeId = self:physics_newRectangleShape(math.random(100, 180), math.random(120, 240))
+        local shapeId = self:physics_newRectangleShape(math.random(90, 120), math.random(200, 300))
         local fixtureId = self:physics_newFixture(bodyId, shapeId, 1)
     end
 
