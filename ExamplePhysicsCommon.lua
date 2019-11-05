@@ -388,7 +388,7 @@ function GameCommon:update(dt)
 
     -- Interpolate touches and update associated joints
     do
-        local interpTime = self.time - 0.13
+        local interpTime = self.time - 0.08
         for touchId, touch in pairs(self.touches) do
             local history = touch.positionHistory
 
