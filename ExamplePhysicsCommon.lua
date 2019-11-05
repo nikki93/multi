@@ -194,8 +194,7 @@ function GameCommon:define()
         reliable = true,
         channel = TOUCHES_CHANNEL,
         forward = true,
-        forwardToOrigin = true,
-        selfSend = false,
+        selfSend = true,
     })
 
     -- Client tells everyone about touch position updates -- `forwardToOrigin` rather than `selfSend` to be
@@ -204,8 +203,7 @@ function GameCommon:define()
         reliable = false,
         channel = TOUCHES_CHANNEL,
         forward = true,
-        forwardToOrigin = true,
-        selfSend = false,
+        selfSend = true,
         rate = 30,
     })
 end
