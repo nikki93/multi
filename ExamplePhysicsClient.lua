@@ -105,13 +105,21 @@ end
 
 -- Mouse / touch
 
-function GameClient:mousepressed(x, y, button)
+function GameClient:mousepressed(x, y, button, isTouch)
+    if isTouch then -- Handle through `:touchpressed`
+        return
+    end
+
     if button == 1 then
         self:touchpressed('mouse', x, y)
     end
 end
 
-function GameClient:mousereleased(x, y, button)
+function GameClient:mousereleased(x, y, button, isTouch)
+    if isTouch then -- Handle through `:touchreleased`
+        return
+    end
+
     if button == 1 then
         self:touchreleased('mouse')
     end
