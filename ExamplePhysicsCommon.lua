@@ -346,9 +346,13 @@ function GameCommon.receivers:addTouch(time, clientId, touchId, x, y, bodyId, lo
         },
     }
 
-    -- Create mouse joint
     local body = self.physicsIdToObject[bodyId]
     if body then
+        -- Save and remove damping
+        touch.oldLinearDampingX, touch.oldLinearDampingY = body:getLinearDamping()
+        touch.oldAngularDamping = body:getAngularDamping()
+
+        -- Create mouse joint
         local worldX, worldY = body:getWorldPoint(localX, localY)
         touch.mouseJoint = love.physics.newMouseJoint(body, worldX, worldY)
     end
@@ -360,7 +364,14 @@ end
 function GameCommon.receivers:removeTouch(time, touchId)
     local touch = assert(self.touches[touchId], 'removeTouch: no such touch')
 
-    if touch.mouseJoint then
+    if touch.bodyId then -- Restore damping
+        local body = self.physicsIdToObject[touch.bodyId]
+
+        body:setLinearDamping(touch.oldLinearDampingX, touch.oldLinearDampingY)
+        body:setAngularDamping(touch.oldAngularDamping)
+    end
+
+    if touch.mouseJoint then -- Destroy mouse joint
         touch.mouseJoint:destroy()
     end
 
@@ -389,7 +400,7 @@ function GameCommon:update(dt)
 
     -- Interpolate touches and update associated joints
     do
-        local interpTime = self.time - 0.08
+        local interpTime = self.time - 0.1
         for touchId, touch in pairs(self.touches) do
             local history = touch.positionHistory
 
