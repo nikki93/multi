@@ -191,7 +191,8 @@ function GameCommon:define()
         selfSend = true,
     })
 
-    -- Client tells everyone about a touch release
+    -- Client tells everyone about a touch release -- `forwardToOrigin` rather than `selfSend` to be
+    -- more aligned with what others see
     self:defineMessageKind('removeTouch', {
         reliable = true,
         channel = TOUCHES_CHANNEL,
@@ -200,7 +201,8 @@ function GameCommon:define()
         selfSend = false,
     })
 
-    -- Client tells everyone about a touch move
+    -- Client tells everyone about touch position updates -- `forwardToOrigin` rather than `selfSend` to be
+    -- more aligned with what others see
     self:defineMessageKind('touchPosition', {
         reliable = false,
         channel = TOUCHES_CHANNEL,
