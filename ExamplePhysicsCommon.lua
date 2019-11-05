@@ -10,6 +10,9 @@ PHYSICS_CLIENT_SYNCS_CHANNEL = 102
 TOUCHES_CHANNEL = 50
 
 
+TOUCH_SPRING_CONSTANT = 9001
+
+
 -- Define
 
 function GameCommon:define()
@@ -405,9 +408,10 @@ function GameCommon:update(dt)
 
                 self.touches[touchId] = nil
             else
-                -- If bound to a body, apply an impulse on it
+                -- If bound to a body, apply a force on it
                 if touch.binding then
                     local body = self.physicsIdToObject[touch.binding.bodyId]
+                    local mass = body:getMass()
 
                     local newX, newY = touch.x - touch.binding.localX, touch.y - touch.binding.localY
                     local currX, currY = body:getPosition()
@@ -415,7 +419,8 @@ function GameCommon:update(dt)
 
                     body:setLinearVelocity(0, 0)
                     body:setAngularVelocity(0)
-                    body:setLinearVelocity(dispX / dt, dispY / dt)
+
+                    body:applyForce(TOUCH_SPRING_CONSTANT * mass * dispX, TOUCH_SPRING_CONSTANT * mass * dispY)
                 end
             end
         end
