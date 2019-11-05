@@ -352,12 +352,7 @@ end
 
 function GameCommon.receivers:removeTouch(time, touchId)
     local touch = assert(self.touches[touchId], 'removeTouch: no such touch')
-
-    if touch.binding then -- Free the binding
-        self.bodyIdToTouchId[touch.binding.bodyId] = nil
-    end
-
-    self.touches[touchId] = nil
+    touch.removed = true -- We keep it around till the history is exhausted
 end
 
 function GameCommon.receivers:touchPosition(time, touchId, x, y)
@@ -402,17 +397,26 @@ function GameCommon:update(dt)
                 touch.x, touch.y = history[1].x, history[1].y
             end
 
-            -- If bound to a body, apply an impulse on it
-            if touch.binding then
-                local body = self.physicsIdToObject[touch.binding.bodyId]
+            -- If at end of history and it's removed, get rid of this touch
+            if #history <= 1 and touch.removed then
+                if touch.binding then -- Free the binding
+                    self.bodyIdToTouchId[touch.binding.bodyId] = nil
+                end
 
-                local newX, newY = touch.x - touch.binding.localX, touch.y - touch.binding.localY
-                local currX, currY = body:getPosition()
-                local dispX, dispY = newX - currX, newY - currY
+                self.touches[touchId] = nil
+            else
+                -- If bound to a body, apply an impulse on it
+                if touch.binding then
+                    local body = self.physicsIdToObject[touch.binding.bodyId]
 
-                body:setLinearVelocity(0, 0)
-                body:setAngularVelocity(0)
-                body:setLinearVelocity(dispX / dt, dispY / dt)
+                    local newX, newY = touch.x - touch.binding.localX, touch.y - touch.binding.localY
+                    local currX, currY = body:getPosition()
+                    local dispX, dispY = newX - currX, newY - currY
+
+                    body:setLinearVelocity(0, 0)
+                    body:setAngularVelocity(0)
+                    body:setLinearVelocity(dispX / dt, dispY / dt)
+                end
             end
         end
     end
