@@ -236,7 +236,7 @@ function GameCommon:start()
 
     self.mainWorldId = nil
 
-    self.touches = {} --> `touchId` -> `{ clientId, x, y, binding = { bodyId, localX, localY }, positionHistory = { { time, x, y }, ... } }`
+    self.touches = {} --> `touchId` -> `{ clientId, x, y, binding = { bodyId, localX, localY, weldBody, weldJoint }, positionHistory = { { time, x, y }, ... } }`
     self.bodyIdToTouchId = {}
 end
 
@@ -366,7 +366,7 @@ function GameCommon.receivers:addTouch(time, clientId, touchId, x, y)
                     end
                 end)
             if body then
-                local localX, localY = body:getLocalPoint(x, y)
+                local localX, localY = x - body:getX(), y - body:getY()
                 self:send({
                     kind = 'bindTouchToBody',
                 }, touchId, bodyId, localX, localY)
@@ -441,17 +441,13 @@ function GameCommon:update(dt)
             if touch.binding then
                 local body = self.physicsIdToObject[touch.binding.bodyId]
 
-                local oldX, oldY = body:getPosition()
-                body:setPosition(touch.x - touch.binding.localX, touch.y - touch.binding.localY)
+                local newX, newY = touch.x - touch.binding.localX, touch.y - touch.binding.localY
+                local currX, currY = body:getPosition()
+                local dispX, dispY = newX - currX, newY - currY
 
-                local dispX, dispY = body:getX() - oldX, body:getY() - oldY
-                if dispX > 2 and dispY > 2 then
-                    body:setLinearVelocity(dispX / dt, dispY / dt)
-                else
-                    local vx, vy = body:getLinearVelocity()
-                    body:setLinearVelocity(vx / 2, vy / 2)
-                end
+                body:setLinearVelocity(0, 0)
                 body:setAngularVelocity(0)
+                body:setLinearVelocity(dispX / dt, dispY / dt)
             end
         end
     end
