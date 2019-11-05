@@ -14,8 +14,8 @@ function GameClient:start()
 
     self.photoImages = {}
 
-    self.mouseTouchId = nil
-    self.mousePrevX, self.mousePrevY = nil, nil
+    -- Client-local touch state
+    self.localTouches = {} -- Indexed by love touch id
 end
 
 
@@ -70,12 +70,16 @@ function GameClient:update(dt)
     -- Common update
     GameCommon.update(self, dt)
 
-    -- Send mouse updates
-    if self.mouseTouchId then
-        local x, y = love.mouse.getPosition()
-        local dx, dy = x - self.mousePrevX, y - self.mousePrevY
-        self:send({ kind = 'touchPosition' }, self.mouseTouchId, x, y)
-        self.mousePrevX, self.mousePrevY = x, y
+    -- Send touch updates
+    for loveTouchId, localTouch in pairs(self.localTouches) do
+        local x, y
+        if loveTouchId == 'mouse' then
+            x, y = love.mouse.getPosition()
+        else
+            x, y = love.touch.getPosition(loveTouchId)
+        end
+        self:send({ kind = 'touchPosition' }, localTouch.touchId, x, y)
+        localTouch.prevX, localTouch.prevY = x, y
     end
 
     -- Send body syncs
@@ -99,39 +103,54 @@ function GameClient:keypressed(key)
 end
 
 
--- Mouse
+-- Mouse / touch
 
 function GameClient:mousepressed(x, y, button)
     if button == 1 then
-        if self.mainWorld then
-            local body, bodyId
-            self.mainWorld:queryBoundingBox(
-                x - 1, y - 1, x + 1, y + 1,
-                function(fixture)
-                    local candidateBody = fixture:getBody()
-                    local candidateBodyId = self.physicsObjectToId[candidateBody]
-                    local touchId = self.bodyIdToTouchId[candidateBodyId]
-                    if not (touchId and self.touches[touchId].clientId ~= self.clientId) then
-                        body, bodyId = candidateBody, candidateBodyId
-                        return false
-                    end
-                end)
-            if body then
-                local localX, localY = body:getLocalPoint(x, y)
-                self.mouseTouchId = self:generateId()
-                self:send({ kind = 'addTouch' }, self.clientId, self.mouseTouchId, x, y, bodyId, localX, localY)
-                self.mousePrevX, self.mousePrevY = x, y
-            end
-        end
+        self:touchpressed('mouse', x, y)
     end
 end
 
 function GameClient:mousereleased(x, y, button)
     if button == 1 then
-        if self.mouseTouchId then
-            self:send({ kind = 'removeTouch' }, self.mouseTouchId)
-            self.mouseTouchId = nil
+        self:touchreleased('mouse')
+    end
+end
+
+function GameClient:touchpressed(loveTouchId, x, y)
+    if self.mainWorld then
+        local body, bodyId
+        self.mainWorld:queryBoundingBox(
+            x - 1, y - 1, x + 1, y + 1,
+            function(fixture)
+                local candidateBody = fixture:getBody()
+                local candidateBodyId = self.physicsObjectToId[candidateBody]
+                local touchId = self.bodyIdToTouchId[candidateBodyId]
+                if not (touchId and self.touches[touchId].clientId ~= self.clientId) then
+                    body, bodyId = candidateBody, candidateBodyId
+                    return false
+                end
+            end)
+        if body then
+            local localX, localY = body:getLocalPoint(x, y)
+            local touchId = self:generateId()
+
+            self:send({ kind = 'addTouch' }, self.clientId, touchId, x, y, bodyId, localX, localY)
+
+            self.localTouches[loveTouchId] = {
+                touchId = touchId,
+                prevX = x,
+                prevY = y,
+            }
         end
+    end
+end
+
+function GameClient:touchreleased(loveTouchId)
+    local localTouch = self.localTouches[loveTouchId]
+    if localTouch then
+        self:send({ kind = 'removeTouch' }, localTouch.touchId)
+        self.localTouches[loveTouchId] = nil
     end
 end
 

@@ -51,14 +51,12 @@ function GameServer.receivers:createMainWorld()
         local bodyId = self:physics_newBody(worldId, math.random(70, 800 - 70), math.random(0, 300), 'dynamic')
         local shapeId = self:physics_newCircleShape(20)
         local fixtureId = self:physics_newFixture(bodyId, shapeId, 1)
-        -- self:physics_setRestitution(fixtureId, 0.9)
     end
 
     for i = 1, 10 do -- Boxes
         local bodyId = self:physics_newBody(worldId, math.random(70, 800 - 70), math.random(0, 300), 'dynamic')
-        local shapeId = self:physics_newRectangleShape(40, 40)
+        local shapeId = self:physics_newRectangleShape(math.random(20, 100), math.random(20, 100))
         local fixtureId = self:physics_newFixture(bodyId, shapeId, 1)
-        -- self:physics_setRestitution(fixtureId, 0.9)
     end
 
     self:send({ kind = 'mainWorldId' }, worldId)
