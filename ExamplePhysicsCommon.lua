@@ -10,9 +10,6 @@ PHYSICS_CLIENT_SYNCS_CHANNEL = 102
 TOUCHES_CHANNEL = 50
 
 
-TOUCH_SPRING_CONSTANT = 9001
-
-
 -- Define
 
 function GameCommon:define()
