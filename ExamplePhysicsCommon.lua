@@ -337,11 +337,15 @@ function GameCommon.receivers:addTouch(time, clientId, touchId, x, y, bodyId, lo
         finished = false,
         x = x,
         y = y,
+        vx = 0,
+        vy = 0,
         positionHistory = {
             {
                 time = time,
                 x = x,
                 y = y,
+                vx = 0,
+                vy = 0,
             },
         },
         binding = {
@@ -363,12 +367,14 @@ function GameCommon.receivers:removeTouch(time, touchId)
     self.touches[touchId] = nil
 end
 
-function GameCommon.receivers:touchPosition(time, touchId, x, y)
+function GameCommon.receivers:touchPosition(time, touchId, x, y, vx, vy)
     local touch = assert(self.touches[touchId], 'touchPosition: no such touch')
     table.insert(touch.positionHistory, {
         time = time,
         x = x,
         y = y,
+        vx = vx,
+        vy = vy,
     })
 end
 
@@ -400,9 +406,11 @@ function GameCommon:update(dt)
                 local f = (interpTime - history[1].time) / (history[2].time - history[1].time)
                 local dx, dy = history[2].x - history[1].x, history[2].y - history[1].y
                 touch.x, touch.y = history[1].x + f * dx, history[1].y + f * dy
+                touch.vx, touch.vy = history[1].vx, history[1].vy
             elseif #history == 1 then
                 -- Have only one before, just set
                 touch.x, touch.y = history[1].x, history[1].y
+                touch.vx, touch.vy = history[1].vx, history[1].vy
             end
 
             -- If bound to a body, apply forces / impulses
@@ -411,17 +419,12 @@ function GameCommon:update(dt)
                 local mass = body:getMass()
 
                 local newX, newY = touch.x - touch.binding.localX, touch.y - touch.binding.localY
-                local currX, currY = body:getPosition()
-                local dispX, dispY = newX - currX, newY - currY
 
                 body:setLinearVelocity(0, 0)
                 body:setAngularVelocity(0)
 
-                if dispX * dispX + dispY * dispY > 80 * 80 then
-                    body:applyForce(TOUCH_SPRING_CONSTANT * mass * dispX, TOUCH_SPRING_CONSTANT * mass * dispY)
-                else
-                    body:setLinearVelocity(dispX / dt, dispY / dt)
-                end
+                body:setPosition(newX, newY)
+                body:setLinearVelocity(touch.vx, touch.vy)
             end
         end
     end

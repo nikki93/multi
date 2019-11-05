@@ -15,6 +15,7 @@ function GameClient:start()
     self.photoImages = {}
 
     self.mouseTouchId = nil
+    self.mousePrevX, self.mousePrevY = nil, nil
 end
 
 
@@ -69,6 +70,14 @@ function GameClient:update(dt)
     -- Common update
     GameCommon.update(self, dt)
 
+    -- Send mouse updates
+    if self.mouseTouchId then
+        local x, y = love.mouse.getPosition()
+        local dx, dy = x - self.mousePrevX, y - self.mousePrevY
+        self:send({ kind = 'touchPosition' }, self.mouseTouchId, x, y, dx / dt, dy / dt)
+        self.mousePrevX, self.mousePrevY = x, y
+    end
+
     -- Send body syncs
     for objId in pairs(self.physicsOwnerIdToObjectIds[self.clientId]) do
         local obj = self.physicsIdToObject[objId]
@@ -110,6 +119,7 @@ function GameClient:mousepressed(x, y, button)
                 local localX, localY = x - body:getX(), y - body:getY()
                 self.mouseTouchId = self:generateId()
                 self:send({ kind = 'addTouch' }, self.clientId, self.mouseTouchId, x, y, bodyId, localX, localY)
+                self.mousePrevX, self.mousePrevY = x, y
             end
         end
     end
@@ -121,12 +131,6 @@ function GameClient:mousereleased(x, y, button)
             self:send({ kind = 'removeTouch' }, self.mouseTouchId)
             self.mouseTouchId = nil
         end
-    end
-end
-
-function GameClient:mousemoved(x, y)
-    if self.mouseTouchId then
-        self:send({ kind = 'touchPosition' }, self.mouseTouchId, x, y)
     end
 end
 
