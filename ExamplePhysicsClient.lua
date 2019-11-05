@@ -190,7 +190,7 @@ function GameClient:draw()
                     local startX, startY = body:getWorldPoint(touch.localX, touch.localY)
 
                     local localTouchX, localTouchY
-                    for _, localTouch in pairs(self.localTouches) do
+                    for loveTouchId, localTouch in pairs(self.localTouches) do
                         if localTouch.touchId == touchId then
                             if loveTouchId == 'mouse' then
                                 localTouchX, localTouchY = love.mouse.getPosition()
