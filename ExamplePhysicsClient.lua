@@ -183,14 +183,18 @@ function GameClient:draw()
             local holderId
 
             -- Collect touch lines and note holder id
-            for _, touch in pairs(self.touches) do
+            for touchId, touch in pairs(self.touches) do
                 if touch.bodyId == bodyId then
                     holderId = touch.clientId
 
                     local startX, startY = body:getWorldPoint(touch.localX, touch.localY)
-                    love.graphics.line(startX, startY, touch.x, touch.y)
-
-                    table.insert(touchLines, { startX, startY, touch.x, touch.y })
+                    local localTouch = self.localTouches[touchId]
+                    table.insert(touchLines, {
+                        startX,
+                        startY,
+                        localTouch and localTouch.prevX or touch.x,
+                        localTouch and localTouch.prevY or touch.y,
+                    })
                 end
             end
 
