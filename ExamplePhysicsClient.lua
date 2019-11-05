@@ -123,17 +123,20 @@ function GameClient:touchpressed(loveTouchId, x, y)
         self.mainWorld:queryBoundingBox(
             x - 1, y - 1, x + 1, y + 1,
             function(fixture)
-                local candidateBody = fixture:getBody()
-                local candidateBodyId = self.physicsObjectToId[candidateBody]
+                if fixture:testPoint(x, y) then
+                    local candidateBody = fixture:getBody()
+                    local candidateBodyId = self.physicsObjectToId[candidateBody]
 
-                for _, touch in pairs(self.touches) do
-                    if touch.bodyId == candidateBodyId and touch.clientId ~= self.clientId then
-                        return true
+                    for _, touch in pairs(self.touches) do
+                        if touch.bodyId == candidateBodyId and touch.clientId ~= self.clientId then
+                            return true
+                        end
                     end
-                end
 
-                body, bodyId = candidateBody, candidateBodyId
-                return false
+                    body, bodyId = candidateBody, candidateBodyId
+                    return false
+                end
+                return true
             end)
         if body then
             local localX, localY = body:getLocalPoint(x, y)

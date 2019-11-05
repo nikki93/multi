@@ -14,6 +14,8 @@ function GameServer:connect(clientId)
     }, {
         mes = self.mes,
     })
+
+    -- Construct physics objects
 end
 
 function GameServer:disconnect(clientId)
@@ -27,43 +29,47 @@ function GameServer.receivers:createMainWorld()
         return
     end
 
-    local worldId = self:physics_newWorld(0, 9.81 * 64, true)
+    local worldId = self:physics_newWorld(0, 0, true)
 
-    do -- Ground
-        local bodyId = self:physics_newBody(worldId, 800 / 2, 450 - 50 / 2)
-        local shapeId = self:physics_newRectangleShape(800, 50)
+
+    -- Walls
+
+    local function createWall(x, y, width, height)
+        local bodyId = self:physics_newBody(worldId, x, y)
+        local shapeId = self:physics_newRectangleShape(width, height)
         local fixtureId = self:physics_newFixture(bodyId, shapeId)
     end
 
-    do -- Left wall
-        local bodyId = self:physics_newBody(worldId, 50 / 2, 450 / 2)
-        local shapeId = self:physics_newRectangleShape(50, 450)
-        local fixtureId = self:physics_newFixture(bodyId, shapeId)
+    local wallThickness = 20
+
+    createWall(800 / 2, wallThickness / 2, 800, wallThickness)
+    createWall(800 / 2, 450 - wallThickness / 2, 800, wallThickness)
+    createWall(wallThickness / 2, 450 / 2, wallThickness, 450)
+    createWall(800 - wallThickness / 2, 450 / 2, wallThickness, 450)
+
+
+    -- Dynamic bodies
+
+    local function createDynamicBody(shapeId)
+        local bodyId = self:physics_newBody(worldId, math.random(70, 800 - 70), math.random(70, 450 - 70), 'dynamic')
+        local fixtureId = self:physics_newFixture(bodyId, shapeId, 1.5)
+        self:physics_setRestitution(fixtureId, 0.6)
+        self:physics_setAngularDamping(bodyId, 1.6)
+        self:physics_setLinearDamping(bodyId, 2.2)
     end
 
-    do -- Right wall
-        local bodyId = self:physics_newBody(worldId, 800 - 50 / 2, 450 / 2)
-        local shapeId = self:physics_newRectangleShape(50, 450)
-        local fixtureId = self:physics_newFixture(bodyId, shapeId)
+    for i = 1, 5 do -- Balls
+        createDynamicBody(self:physics_newCircleShape(20))
     end
 
-    for i = 1, 10 do -- Balls
-        local bodyId = self:physics_newBody(worldId, math.random(70, 800 - 70), math.random(0, 300), 'dynamic')
-        local shapeId = self:physics_newCircleShape(20)
-        local fixtureId = self:physics_newFixture(bodyId, shapeId, 1)
+    for i = 1, 5 do -- Small boxes
+        createDynamicBody(self:physics_newRectangleShape(40, 40))
     end
 
-    for i = 1, 10 do -- Small boxes
-        local bodyId = self:physics_newBody(worldId, math.random(70, 800 - 70), math.random(0, 300), 'dynamic')
-        local shapeId = self:physics_newRectangleShape(40, 40)
-        local fixtureId = self:physics_newFixture(bodyId, shapeId, 1)
+    for i = 1, 2 do -- Big boxes
+        createDynamicBody(self:physics_newRectangleShape(math.random(90, 120), math.random(200, 300)))
     end
 
-    do -- Big box
-        local bodyId = self:physics_newBody(worldId, math.random(70, 800 - 70), math.random(0, 300), 'dynamic')
-        local shapeId = self:physics_newRectangleShape(math.random(90, 120), math.random(200, 300))
-        local fixtureId = self:physics_newFixture(bodyId, shapeId, 1)
-    end
 
     self:send({ kind = 'mainWorldId' }, worldId)
 end
