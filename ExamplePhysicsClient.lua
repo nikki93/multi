@@ -166,6 +166,7 @@ end
 
 function GameClient:draw()
     if self.mainWorld then
+        love.graphics.setColor(1, 1, 1)
         for _, body in ipairs(self.mainWorld:getBodies()) do
             local bodyId = self.physicsObjectToId[body]
             local holderId
@@ -211,4 +212,7 @@ function GameClient:draw()
             end
         end
     end
+
+    love.graphics.setColor(0, 0, 0)
+    love.graphics.print('fps: ' .. love.timer.getFPS(), 22, 2)
 end
