@@ -408,7 +408,6 @@ function GameCommon:update(dt)
 
                 self.touches[touchId] = nil
             else
-                -- If bound to a body, apply a force on it
                 if touch.binding then
                     local body = self.physicsIdToObject[touch.binding.bodyId]
                     local mass = body:getMass()
@@ -420,7 +419,11 @@ function GameCommon:update(dt)
                     body:setLinearVelocity(0, 0)
                     body:setAngularVelocity(0)
 
-                    body:applyForce(TOUCH_SPRING_CONSTANT * mass * dispX, TOUCH_SPRING_CONSTANT * mass * dispY)
+                    if dispX * dispX + dispY * dispY > 80 * 80 then
+                        body:applyForce(TOUCH_SPRING_CONSTANT * mass * dispX, TOUCH_SPRING_CONSTANT * mass * dispY)
+                    else
+                        body:setLinearVelocity(dispX / dt, dispY / dt)
+                    end
                 end
             end
         end
