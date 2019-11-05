@@ -174,14 +174,23 @@ end
 
 function GameClient:draw()
     if self.mainWorld then
-        love.graphics.setColor(1, 1, 1)
+        love.graphics.setLineWidth(2)
+
+        local touchLines = {}
+
         for _, body in ipairs(self.mainWorld:getBodies()) do
             local bodyId = self.physicsObjectToId[body]
             local holderId
+
+            -- Collect touch lines and note holder id
             for _, touch in pairs(self.touches) do
                 if touch.bodyId == bodyId then
                     holderId = touch.clientId
-                    break
+
+                    local startX, startY = body:getWorldPoint(touch.localX, touch.localY)
+                    love.graphics.line(startX, startY, touch.x, touch.y)
+
+                    table.insert(touchLines, { startX, startY, touch.x, touch.y })
                 end
             end
 
@@ -218,6 +227,13 @@ function GameClient:draw()
                     love.graphics.draw(image, x - 15, y - 15, 0, 30 / image:getWidth(), 30 / image:getHeight())
                 end
             end
+        end
+
+        -- Draw touch lines
+        love.graphics.setColor(1, 0, 1)
+        for _, touchLine in ipairs(touchLines) do
+            love.graphics.line(unpack(touchLine))
+            love.graphics.circle('fill', touchLine[3], touchLine[4], 5)
         end
     end
 

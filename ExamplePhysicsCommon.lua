@@ -336,6 +336,8 @@ function GameCommon.receivers:addTouch(time, clientId, touchId, x, y, bodyId, lo
         finished = false,
         x = x,
         y = y,
+        localX = localX,
+        localY = localY,
         bodyId = bodyId,
         positionHistory = {
             {
