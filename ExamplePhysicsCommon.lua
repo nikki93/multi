@@ -185,7 +185,8 @@ function GameCommon:define()
         reliable = true,
         channel = TOUCHES_CHANNEL,
         forward = true,
-        selfSend = true,
+        forwardToOrigin = true,
+        selfSend = false,
     })
 
     -- Client tells everyone about a touch release -- `forwardToOrigin` rather than `selfSend` to be
