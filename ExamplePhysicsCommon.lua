@@ -205,8 +205,9 @@ function GameCommon:define()
         rate = 30,
     })
 
-    -- Server tells everyone to bind a touch to a mouse joint (for direct manipulation)
-    self:defineMessageKind('bindTouchMouseJoint', {
+    -- Server tells everyone to bind a touch to a body
+    self:defineMessageKind('bindTouchToBody', {
+        from = 'server',
         to = 'all',
         reliable = true,
         channel = TOUCHES_CHANNEL,
@@ -235,7 +236,8 @@ function GameCommon:start()
 
     self.mainWorldId = nil
 
-    self.touches = {} --> `touchId` -> `{ clientId, x, y, mouseJointId, positionHistory = { { time, x, y }, ... } }`
+    self.touches = {} --> `touchId` -> `{ clientId, x, y, binding = { bodyId, localX, localY }, positionHistory = { { time, x, y }, ... } }`
+    self.bodyIdToTouchId = {}
 end
 
 
@@ -338,7 +340,6 @@ function GameCommon.receivers:addTouch(time, clientId, touchId, x, y)
         clientId = clientId,
         x = x,
         y = y,
-        mouseJointId = nil, -- Will be set in `bindTouchMouseJoint` handler
         positionHistory = {
             {
                 time = time,
@@ -346,26 +347,29 @@ function GameCommon.receivers:addTouch(time, clientId, touchId, x, y)
                 y = y,
             },
         },
+
+        -- Will be set by `bindTouchToBody`
+        binding = nil,
     }
 
-    if self.server then -- Only server should create the mouse joints
+    if self.server then -- Only server should bind touches to bodies
         if self.mainWorld then
-            -- Find body under this touch
-            local body
+            local body, bodyId
             self.mainWorld:queryBoundingBox(
                 x - 1, y - 1, x + 1, y + 1,
                 function(fixture)
-                    body = fixture:getBody()
-                    return false
+                    local candidateBody = fixture:getBody()
+                    local candidateBodyId = self.physicsObjectToId[candidateBody]
+                    if not self.bodyIdToTouchId[candidateBodyId] then
+                        body, bodyId = candidateBody, candidateBodyId
+                        return false
+                    end
                 end)
-
             if body then
-                -- If found, create a mouse joint and bind the touch to it
-                local bodyId = self.physicsObjectToId[body]
-                local mouseJointId = self:physics_newMouseJoint(bodyId, x, y)
+                local localX, localY = body:getLocalPoint(x, y)
                 self:send({
-                    kind = 'bindTouchMouseJoint',
-                }, touchId, mouseJointId)
+                    kind = 'bindTouchToBody',
+                }, touchId, bodyId, localX, localY)
             end
         end
     end
@@ -374,15 +378,11 @@ end
 function GameCommon.receivers:removeTouch(time, touchId)
     local touch = assert(self.touches[touchId], 'removeTouch: no such touch')
 
-    self.touches[touchId] = nil
-
-    if self.server then -- Only server should destroy the mouse joints
-        if touch.mouseJointId then
-            self:send({
-                kind = 'physics_destroyObject',
-            }, touch.mouseJointId)
-        end
+    if touch.binding then -- Free the binding
+        self.bodyIdToTouchId[touch.binding.bodyId] = nil
     end
+
+    self.touches[touchId] = nil
 end
 
 function GameCommon.receivers:touchPosition(time, touchId, x, y)
@@ -394,9 +394,14 @@ function GameCommon.receivers:touchPosition(time, touchId, x, y)
     })
 end
 
-function GameCommon.receivers:bindTouchMouseJoint(time, touchId, mouseJointId)
+function GameCommon.receivers:bindTouchToBody(time, touchId, bodyId, localX, localY)
     local touch = assert(self.touches[touchId], 'bindTouchMouseJoint: no such touch')
-    touch.mouseJointId = mouseJointId
+    touch.binding = {
+        bodyId = bodyId,
+        localX = localX,
+        localY = localY,
+    }
+    self.bodyIdToTouchId[bodyId] = touchId
 end
 
 
@@ -410,7 +415,7 @@ function GameCommon:update(dt)
         end
     end
 
-    -- Interpolate touches and update their mouse joints
+    -- Interpolate touches and apply forces to bound bodies
     do
         local interpTime = self.time - 0.15
         for touchId, touch in pairs(self.touches) do
@@ -432,12 +437,21 @@ function GameCommon:update(dt)
                 touch.x, touch.y = history[1].x, history[1].y
             end
 
-            -- Update mouse joint, if bound to one
-            if touch.mouseJointId then
-                local mouseJoint = self.physicsIdToObject[touch.mouseJointId]
-                if mouseJoint then
-                    mouseJoint:setTarget(touch.x, touch.y)
+            -- If bound to a body, apply a force on it
+            if touch.binding then
+                local body = self.physicsIdToObject[touch.binding.bodyId]
+
+                local oldX, oldY = body:getPosition()
+                body:setPosition(touch.x - touch.binding.localX, touch.y - touch.binding.localY)
+
+                local dispX, dispY = body:getX() - oldX, body:getY() - oldY
+                if dispX > 2 and dispY > 2 then
+                    body:setLinearVelocity(dispX / dt, dispY / dt)
+                else
+                    local vx, vy = body:getLinearVelocity()
+                    body:setLinearVelocity(vx / 2, vy / 2)
                 end
+                body:setAngularVelocity(0)
             end
         end
     end
