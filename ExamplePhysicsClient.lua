@@ -30,17 +30,6 @@ function GameClient:connect()
 end
 
 
--- Full state
-
-function GameClient.receivers:fullState(time, state)
-    -- Read `me`s and load photos -- here we merge because we may have set our own `me` already
-    for clientId, me in pairs(state.mes) do
-        self.mes[clientId] = me
-        self:loadPhotoImage(clientId)
-    end
-end
-
-
 -- Mes
 
 function GameClient:loadPhotoImage(clientId)
@@ -90,15 +79,6 @@ function GameClient:update(dt)
                 kind = 'physics_clientBodySync',
             }, objId, self:physics_getBodySync(obj))
         end
-    end
-end
-
-
--- Keyboard
-
-function GameClient:keypressed(key)
-    if key == 'return' then
-        self:send({ kind = 'createMainWorld' })
     end
 end
 

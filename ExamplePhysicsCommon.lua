@@ -172,15 +172,7 @@ function GameCommon:define()
     -- Scene
     --
 
-    -- Client requests server to create the scene
-    self:defineMessageKind('createMainWorld', {
-        reliable = true,
-        channel = MAIN_RELIABLE_CHANNEL,
-        forward = false,
-        selfSend = false,
-    })
-
-    -- Client receives `physicsId` of the world when the scene is created
+    -- Client receives `physicsId` of the world
     self:defineMessageKind('mainWorldId', {
         to = 'all',
         reliable = true,
@@ -341,17 +333,16 @@ end
 
 -- Touches
 
-function GameCommon.receivers:addTouch(time, clientId, touchId, x, y, bodyId, localX, localY)
+function GameCommon.receivers:addTouch(time, clientId, touchId, x, y, bodyId, localX, localY, positionHistory)
     -- Create touch entry
     local touch = {
         clientId = clientId,
-        finished = false,
         x = x,
         y = y,
         localX = localX,
         localY = localY,
         bodyId = bodyId,
-        positionHistory = {
+        positionHistory = positionHistory or {
             {
                 time = time,
                 x = x,
@@ -376,7 +367,10 @@ function GameCommon.receivers:addTouch(time, clientId, touchId, x, y, bodyId, lo
 end
 
 function GameCommon.receivers:removeTouch(time, touchId)
-    local touch = assert(self.touches[touchId], 'removeTouch: no such touch')
+    local touch = self.touches[touchId]
+    if not touch then
+        return
+    end
 
     if touch.bodyId then -- Restore damping
         local body = self.physicsIdToObject[touch.bodyId]
@@ -393,12 +387,14 @@ function GameCommon.receivers:removeTouch(time, touchId)
 end
 
 function GameCommon.receivers:touchPosition(time, touchId, x, y)
-    local touch = assert(self.touches[touchId], 'touchPosition: no such touch')
-    table.insert(touch.positionHistory, {
-        time = time,
-        x = x,
-        y = y,
-    })
+    local touch = self.touches[touchId]
+    if touch then
+        table.insert(touch.positionHistory, {
+            time = time,
+            x = x,
+            y = y,
+        })
+    end
 end
 
 
