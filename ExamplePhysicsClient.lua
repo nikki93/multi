@@ -225,7 +225,9 @@ function GameClient:draw()
                 elseif ty == 'polygon' then
                     love.graphics.polygon('fill', body:getWorldPoints(shape:getPoints()))
                 elseif ty == 'edge' then
+                    love.graphics.polygon('line', body:getWorldPoints(shape:getPoints()))
                 elseif ty == 'chain' then
+                    love.graphics.polygon('line', body:getWorldPoints(shape:getPoints()))
                 end
             end
 
