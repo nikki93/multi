@@ -58,7 +58,7 @@ function GameServer.receivers:createMainWorld()
         self:physics_setLinearDamping(bodyId, 2.2)
     end
 
-    for i = 1, 120 do -- Small balls
+    for i = 1, 80 do -- Small balls
         createDynamicBody(self:physics_newCircleShape(math.random(5, 12)))
     end
 
