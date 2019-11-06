@@ -19,6 +19,7 @@ function GameServer:start()
         local bodyId = self:physics_newBody(worldId, x, y)
         local shapeId = self:physics_newRectangleShape(width, height)
         local fixtureId = self:physics_newFixture(bodyId, shapeId)
+        self:physics_destroyObject(shapeId)
     end
 
     local wallThickness = 20
@@ -34,6 +35,7 @@ function GameServer:start()
     local function createDynamicBody(shapeId)
         local bodyId = self:physics_newBody(worldId, math.random(70, 800 - 70), math.random(70, 450 - 70), 'dynamic')
         local fixtureId = self:physics_newFixture(bodyId, shapeId, 1.5)
+        self:physics_destroyObject(shapeId)
         self:physics_setRestitution(fixtureId, 0.6)
         self:physics_setAngularDamping(bodyId, 1.6)
         self:physics_setLinearDamping(bodyId, 2.2)

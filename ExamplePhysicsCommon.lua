@@ -257,16 +257,26 @@ function GameCommon:physics_resolveIds(...)
     return self.physicsIdToObject[firstArg] or firstArg, self:physics_resolveIds(select(2, ...))
 end
 
+function GameCommon:physics_destroyObject(physicsId)
+    self:send({ kind = 'physics_destroyObject' }, physicsId)
+end
+
 function GameCommon.receivers:physics_destroyObject(time, physicsId)
     local obj = self.physicsIdToObject[physicsId]
     if not obj then
         error("physics_destroyObject: no / bad `physicsId`")
     end
 
+    -- TODO(nikki): Destroy attached fixtures and joints if it's a body
+
     self.physicsIdToObject[physicsId] = nil
     self.physicsObjectToId[obj] = nil
 
-    obj:destroy()
+    if obj.destroy then
+        obj:destroy()
+    else
+        obj:release()
+    end
 end
 
 function GameCommon.receivers:physics_setOwner(time, physicsId, newOwnerId)
