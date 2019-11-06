@@ -150,8 +150,7 @@ function GameServer:connect(clientId)
         send('addTouch',
             touch.clientId, touchId,
             touch.x, touch.y,
-            touch.bodyId, touch.localX, touch.localY,
-            touch.positionHistory)
+            touch.bodyId, touch.localX, touch.localY)
     end
 end
 

@@ -343,7 +343,7 @@ end
 
 -- Touches
 
-function GameCommon.receivers:addTouch(time, clientId, touchId, x, y, bodyId, localX, localY, positionHistory)
+function GameCommon.receivers:addTouch(time, clientId, touchId, x, y, bodyId, localX, localY)
     -- Create touch entry
     local touch = {
         clientId = clientId,
@@ -352,7 +352,7 @@ function GameCommon.receivers:addTouch(time, clientId, touchId, x, y, bodyId, lo
         localX = localX,
         localY = localY,
         bodyId = bodyId,
-        positionHistory = positionHistory or {
+        positionHistory = {
             {
                 time = time,
                 x = x,
@@ -363,10 +363,6 @@ function GameCommon.receivers:addTouch(time, clientId, touchId, x, y, bodyId, lo
 
     local body = self.physicsIdToObject[bodyId]
     if body then
-        -- Save and remove damping
-        touch.oldLinearDampingX, touch.oldLinearDampingY = body:getLinearDamping()
-        touch.oldAngularDamping = body:getAngularDamping()
-
         -- Create mouse joint
         local worldX, worldY = body:getWorldPoint(localX, localY)
         touch.mouseJoint = love.physics.newMouseJoint(body, worldX, worldY)
@@ -380,13 +376,6 @@ function GameCommon.receivers:removeTouch(time, touchId)
     local touch = self.touches[touchId]
     if not touch then
         return
-    end
-
-    if touch.bodyId then -- Restore damping
-        local body = self.physicsIdToObject[touch.bodyId]
-
-        body:setLinearDamping(touch.oldLinearDampingX, touch.oldLinearDampingY)
-        body:setAngularDamping(touch.oldAngularDamping)
     end
 
     if touch.mouseJoint then -- Destroy mouse joint
