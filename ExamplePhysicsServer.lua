@@ -15,7 +15,83 @@ function GameServer:connect(clientId)
         mes = self.mes,
     })
 
-    -- Construct physics objects
+    -- Send physics state
+    do
+        local function send(kind, ...) -- Shorthand to send message to this particular client
+            self:send({
+                to = clientId,
+                kind = kind,
+                selfSend = false,
+            }, ...)
+        end
+
+        local visited = {}
+
+        local function visit(obj, physicsId) -- Send constructor + setters for this physics object
+            if visited[obj] then
+                return visited[obj]
+            end
+
+            physicsId = physicsId or self.physicsObjectToId[obj] or self:generateId()
+
+            visited[obj] = physicsId
+
+            if obj:typeOf('World') then
+                local gravityX, gravityY = obj:getGravity()
+                send('physics_newWorld', physicsId, gravityX, gravityY, obj:isSleepingAllowed())
+            elseif obj:typeOf('Body') then
+                send('physics_newBody', physicsId, visit(obj:getWorld()), obj:getX(), obj:getY(), obj:getType())
+                send('physics_setMassData', physicsId, obj:getMassData())
+                send('physics_setFixedRotation', physicsId, obj:isFixedRotation())
+
+                send('physics_setAngle', physicsId, obj:getAngle())
+
+                send('physics_setLinearVelocity', physicsId, obj:getLinearVelocity())
+                send('physics_setAngularVelocity', physicsId, obj:getAngularVelocity())
+
+                send('physics_setLinearDamping', physicsId, obj:getLinearDamping())
+                send('physics_setAngularDamping', physicsId, obj:getAngularDamping())
+
+                send('physics_setAwake', physicsId, obj:isAwake())
+                send('physics_setActive', physicsId, obj:isActive())
+                send('physics_setBullet', physicsId, obj:isBullet())
+                send('physics_setGravityScale', physicsId, obj:getGravityScale())
+            elseif obj:typeOf('Fixture') then
+                send('physics_newFixture', physicsId, visit(obj:getBody()), visit(obj:getShape()), obj:getDensity())
+                send('physics_setFilterData', physicsId, obj:getFilterData())
+                send('physics_setFriction', physicsId, obj:getFriction())
+                send('physics_setRestitution', physicsId, obj:getRestitution())
+                send('physics_setSensor', physicsId, obj:isSensor())
+            elseif obj:typeOf('Shape') then
+                local shapeType = obj:getType()
+                if shapeType == 'circle' then
+                    local x, y = obj:getPoint()
+                    send('physics_newCircleShape', physicsId, x, y, obj:getRadius())
+                elseif shapeType == 'polygon' then
+                    send('physics_newPolygonShape', physicsId, obj:getPoints())
+                elseif shapeType == 'edge' then
+                    send('physics_newEdgeShape', physicsId, obj:getPoints())
+                    send('physics_setPreviousVertex', physicsId, obj:getPreviousVertex())
+                    send('physics_setNextVertex', physicsId, obj:getNextVertex())
+                elseif shapeType == 'chain' then
+                    send('physics_newChainShape', physicsId, obj:getPoints())
+                    send('physics_setPreviousVertex', physicsId, obj:getPreviousVertex())
+                    send('physics_setNextVertex', physicsId, obj:getNextVertex())
+                end
+            end
+            -- TODO(nikki): Handle joints!
+
+            return physicsId
+        end
+
+        for physicsId, obj in pairs(self.physicsIdToObject) do -- Visit all physics objects
+            visit(obj, physicsId)
+        end
+
+        if self.mainWorldId then
+            send('mainWorldId', self.mainWorldId)
+        end
+    end
 end
 
 function GameServer:disconnect(clientId)

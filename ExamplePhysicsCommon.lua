@@ -52,9 +52,16 @@ function GameCommon:define()
             if not GameCommon.receivers[kind] then
                 GameCommon.receivers[kind] = function(self, time, physicsId, ...)
                     (function (...)
-                        local obj = love.physics[methodName](...)
-                        self.physicsIdToObject[physicsId] = obj
-                        self.physicsObjectToId[obj] = physicsId
+                        local obj
+                        local succeeded, err = pcall(function(...)
+                            obj = love.physics[methodName](...)
+                        end, ...)
+                        if succeeded then
+                            self.physicsIdToObject[physicsId] = obj
+                            self.physicsObjectToId[obj] = physicsId
+                        else
+                            error(kind .. ': ' .. err)
+                        end
                     end)(self:physics_resolveIds(...))
                 end
 
@@ -94,7 +101,12 @@ function GameCommon:define()
                         if not obj then
                             error("no / bad `physicsId` given as first parameter to '" .. kind .. "'")
                         end
-                        obj[methodName](obj, ...)
+                        local succeeded, err = pcall(function(...)
+                            obj[methodName](obj, ...)
+                        end, ...)
+                        if not succeeded then
+                            error(kind .. ': ' .. err)
+                        end
                     end)(self:physics_resolveIds(...))
                 end
 
