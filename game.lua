@@ -26,6 +26,7 @@ function Game:_init(opts)
     if self.server then
         self._clientIds = {}
         self._startTime = love.timer.getTime()
+        self.time = 0
     end
 
     if self.client then
