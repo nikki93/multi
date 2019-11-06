@@ -49,10 +49,11 @@ end
 
 
 function server.update(dt)
-    for _, clientId in ipairs(needsConnect) do
+    for i = #needsConnect, 1, -1 do
+        local clientId = needsConnect[i]
+        table.remove(needsConnect, i)
         game:_connect(clientId)
     end
-    needsConnect = {}
 
     game:_update(dt)
 end
