@@ -181,7 +181,7 @@ function GameClient:draw()
                         end
                     end
 
-                    table.insert(touchLines, { startX, startY, localX or touch.x, localY or touch.y })
+                    table.insert(touchLines, { startX, startY, localTouchX or touch.x, localTouchY or touch.y })
                 end
             end
 
