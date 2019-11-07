@@ -54,8 +54,18 @@ function Game:_init(opts)
     self._kindThrottles = {} -- `kind` -> `{ period, timeSinceLastSend }`
 
     self:defineMessageKind('_initial', {
+        from = 'server',
         reliable = true,
         channel = 0,
+        selfSend = false,
+    })
+
+    self:defineMessageKind('_ping', {
+        from = 'server',
+        to = 'all',
+        reliable = false,
+        channel = 0,
+        rate = 10,
         selfSend = false,
     })
 
@@ -82,12 +92,18 @@ function Game.receivers:_initial(_, time)
 
     -- Initialize time
     self.time = time
-    self._timeDelta = time - love.timer.getTime()
+    self._timeDelta = self.time - love.timer.getTime()
 
     -- Ready to call `:connect`
     self.connected = true
     self.clientId = self.client.id
     self:connect()
+end
+
+function Game.receivers:_ping(_, time)
+    -- Update time
+    self.time = math.max(self.time, 0.6 * self.time + 0.4 * time)
+    self._timeDelta = self.time - love.timer.getTime()
 end
 
 function Game:_disconnect(clientId)
@@ -185,8 +201,9 @@ function Game:send(opts, ...)
 end
 
 function Game:_receive(fromClientId, kindNum, time, forward, channel, reliable, ...)
-    -- `_initial` is special -- receive it immediately. Otherwise, enqueue to receive based on priority later.
-    if kindNum == self._kindToNum['_initial'] then
+    -- `_initial` and `_ping` are special -- receive immediately. Otherwise, enqueue to receive based
+    -- on priority later.
+    if kindNum == self._kindToNum['_initial'] or kindNum == self._kindToNum['_ping'] then
         self:_callReceiver(kindNum, time, ...)
     else
         self._pendingReceives:Add({
@@ -235,6 +252,7 @@ function Game:_update(dt)
     -- Let time pass
     if self.server then
         self.time = love.timer.getTime() - self._startTime
+        self:send({ kind = '_ping' }, self.time)
     end
     if self.client and self._timeDelta then
         self.time = love.timer.getTime() + self._timeDelta
