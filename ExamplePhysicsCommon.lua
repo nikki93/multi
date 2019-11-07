@@ -155,7 +155,7 @@ function GameCommon:define()
         from = 'server',
         channel = PHYSICS_SERVER_SYNCS_CHANNEL,
         reliable = false,
-        rate = 10,
+        rate = 20,
         selfSend = false,
     })
 
@@ -346,6 +346,7 @@ end
 function GameCommon.receivers:addTouch(time, clientId, touchId, x, y, bodyId, localX, localY)
     -- Create touch entry
     local touch = {
+        finished = false,
         clientId = clientId,
         x = x,
         y = y,
@@ -372,17 +373,19 @@ function GameCommon.receivers:addTouch(time, clientId, touchId, x, y, bodyId, lo
     self.touches[touchId] = touch
 end
 
-function GameCommon.receivers:removeTouch(time, touchId)
+function GameCommon.receivers:removeTouch(time, touchId, x, y)
     local touch = self.touches[touchId]
-    if not touch then
-        return
-    end
+    if touch then
+        -- Add the final position
+        table.insert(touch.positionHistory, {
+            time = time,
+            x = x,
+            y = y,
+        })
 
-    if touch.mouseJoint then -- Destroy mouse joint
-        touch.mouseJoint:destroy()
+        -- We'll actually remove it when we exhaust the history while interpolating
+        touch.finished = true
     end
-
-    self.touches[touchId] = nil
 end
 
 function GameCommon.receivers:touchPosition(time, touchId, x, y)
@@ -418,20 +421,29 @@ function GameCommon:update(dt)
                 table.remove(history, 1)
             end
 
-            -- Update position
-            if #history >= 2 then
-                -- Have one before and one after, interpolate
-                local f = (interpTime - history[1].time) / (history[2].time - history[1].time)
-                local dx, dy = history[2].x - history[1].x, history[2].y - history[1].y
-                touch.x, touch.y = history[1].x + f * dx, history[1].y + f * dy
-            elseif #history == 1 then
-                -- Have only one before, just set
-                touch.x, touch.y = history[1].x, history[1].y
-            end
+            -- If have only one entry left and finished, remove this touch
+            if touch.finished and #history <= 1 then
+                if touch.mouseJoint then -- Destroy mouse joint
+                    touch.mouseJoint:destroy()
+                end
 
-            -- Update mouse joint if it has one
-            if touch.mouseJoint then
-                touch.mouseJoint:setTarget(touch.x, touch.y)
+                self.touches[touchId] = nil
+            else
+                -- Update position
+                if #history >= 2 then
+                    -- Have one before and one after, interpolate
+                    local f = (interpTime - history[1].time) / (history[2].time - history[1].time)
+                    local dx, dy = history[2].x - history[1].x, history[2].y - history[1].y
+                    touch.x, touch.y = history[1].x + f * dx, history[1].y + f * dy
+                elseif #history == 1 then
+                    -- Have only one before, just set
+                    touch.x, touch.y = history[1].x, history[1].y
+                end
+
+                -- Update mouse joint if it has one
+                if touch.mouseJoint then
+                    touch.mouseJoint:setTarget(touch.x, touch.y)
+                end
             end
         end
     end

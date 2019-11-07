@@ -101,7 +101,7 @@ function GameClient:mousereleased(x, y, button, isTouch)
     end
 
     if button == 1 then
-        self:touchreleased('mouse')
+        self:touchreleased('mouse', x, y)
     end
 end
 
@@ -141,10 +141,10 @@ function GameClient:touchpressed(loveTouchId, x, y)
     end
 end
 
-function GameClient:touchreleased(loveTouchId)
+function GameClient:touchreleased(loveTouchId, x, y)
     local localTouch = self.localTouches[loveTouchId]
     if localTouch then
-        self:send({ kind = 'removeTouch' }, localTouch.touchId)
+        self:send({ kind = 'removeTouch' }, localTouch.touchId, x, y)
         self.localTouches[loveTouchId] = nil
     end
 end
