@@ -412,17 +412,17 @@ function GameCommon:update(dt)
 
     -- Interpolate touches and update associated joints
     do
-        local interpTime = self.time - 0.15
+        local interpTime = self.time - 0.08
         for touchId, touch in pairs(self.touches) do
             local history = touch.positionHistory
 
-            -- Remove position if next one is also before interpolation time -- we need one before and one after
-            while #history >= 2 and history[1].time < interpTime and history[2].time < interpTime do
+            -- Remove history that won't be needed anymore
+            while #history > 2 and history[1].time < interpTime and history[2].time < interpTime do
                 table.remove(history, 1)
             end
 
-            -- If have only one entry left and finished, remove this touch
-            if touch.finished and #history <= 1 then
+            -- If touch finished and all events are in the past, remove this touch
+            if touch.finished and (#history <= 1 or history[2].time < interpTime) then
                 if touch.mouseJoint then -- Destroy mouse joint
                     touch.mouseJoint:destroy()
                 end
@@ -431,12 +431,12 @@ function GameCommon:update(dt)
             else
                 -- Update position
                 if #history >= 2 then
-                    -- Have one before and one after, interpolate
+                    -- Have two, interpolate
                     local f = (interpTime - history[1].time) / (history[2].time - history[1].time)
                     local dx, dy = history[2].x - history[1].x, history[2].y - history[1].y
                     touch.x, touch.y = history[1].x + f * dx, history[1].y + f * dy
                 elseif #history == 1 then
-                    -- Have only one before, just set
+                    -- Have only one, just set
                     touch.x, touch.y = history[1].x, history[1].y
                 end
 
