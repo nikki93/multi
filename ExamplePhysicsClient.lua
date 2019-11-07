@@ -230,6 +230,12 @@ function GameClient:draw()
         end
     end
 
+
+    local pingText = ''
+    if self.connected then
+        pingText = '    ping: ' ..self.client.getPing()
+    end
+
     love.graphics.setColor(0, 0, 0)
-    love.graphics.print('fps: ' .. love.timer.getFPS(), 22, 2)
+    love.graphics.print('fps: ' .. love.timer.getFPS() .. pingText, 22, 2)
 end
