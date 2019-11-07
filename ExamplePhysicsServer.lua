@@ -10,7 +10,7 @@ function GameServer:start()
     GameCommon.start(self)
 
 
-    local worldId = self:physics_newWorld(0, 0, true)
+    local worldId = self:physics_newWorld(0, 9.8 * 64, true)
 
 
     -- Walls
