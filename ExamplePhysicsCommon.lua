@@ -1,6 +1,9 @@
 love.physics.setMeter(64)
 
 
+PHYSICS_UPDATE_RATE = 144
+
+
 MAIN_RELIABLE_CHANNEL = 0
 
 PHYSICS_RELIABLE_CHANNEL = 100
@@ -235,6 +238,7 @@ function GameCommon:start()
     })
 
     self.mainWorldId = nil
+    self.mainWorldTimeAccumulator = 0
 
     self.touches = {}
 end
@@ -328,6 +332,8 @@ function GameCommon.receivers:physics_serverBodySyncs(time, syncs)
             self:physics_applyBodySync(body, unpack(sync))
         end
     end
+
+    self.mainWorldTimeAccumulator = 0
 end
 
 function GameCommon.receivers:physics_clientBodySync(time, bodyId, ...)
@@ -457,8 +463,12 @@ function GameCommon:update(dt)
         end
     end
 
-    -- Do a physics step
+    -- Update physics
     if self.mainWorld then
-        self.mainWorld:update(dt)
+        self.mainWorldTimeAccumulator = self.mainWorldTimeAccumulator + dt
+        while self.mainWorldTimeAccumulator >= 1 / PHYSICS_UPDATE_RATE do
+            self.mainWorld:update(1 / PHYSICS_UPDATE_RATE)
+            self.mainWorldTimeAccumulator = self.mainWorldTimeAccumulator - 1 / PHYSICS_UPDATE_RATE
+        end
     end
 end
