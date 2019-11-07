@@ -333,7 +333,7 @@ function GameCommon.receivers:physics_serverBodySyncs(time, syncs)
         end
     end
 
-    self.mainWorldTimeAccumulator = 0
+    self.mainWorldTimeAccumulator = self.time - time
 end
 
 function GameCommon.receivers:physics_clientBodySync(time, bodyId, ...)
