@@ -318,6 +318,10 @@ function GameCommon:physics_applyBodySync(body, x, y, vx, vy, a, va)
 end
 
 function GameCommon.receivers:physics_serverBodySyncs(time, syncs)
+    if self.time - time > 0.05 then -- Too far in the past? Just drop...
+        return
+    end
+
     for bodyId, sync in pairs(syncs) do
         local body = self.physicsIdToObject[bodyId]
         if body then
@@ -412,7 +416,7 @@ function GameCommon:update(dt)
 
     -- Interpolate touches and update associated joints
     do
-        local interpTime = self.time - 0.08
+        local interpTime = self.time - 0.12
         for touchId, touch in pairs(self.touches) do
             local history = touch.positionHistory
 
@@ -433,6 +437,11 @@ function GameCommon:update(dt)
                 if #history >= 2 then
                     -- Have two, interpolate
                     local f = (interpTime - history[1].time) / (history[2].time - history[1].time)
+
+                    if f > 1 then -- If extrapolating, don't go too far
+                        f = 1 + 0.2 * (f - 1)
+                    end
+
                     local dx, dy = history[2].x - history[1].x, history[2].y - history[1].y
                     touch.x, touch.y = history[1].x + f * dx, history[1].y + f * dy
                 elseif #history == 1 then
