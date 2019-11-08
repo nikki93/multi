@@ -1,6 +1,6 @@
 <p float="left" align="center">
-  <img src="ExampleShooter.gif" height="100">
-  <img src="ExamplePhysics.gif" height="100">
+  <img src="ExampleShooter.gif" height="250">
+  <img src="ExamplePhysics.gif" height="250">
 </p>
 
 # What is this?
