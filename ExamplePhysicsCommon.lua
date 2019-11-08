@@ -28,8 +28,11 @@ function GameCommon:define()
     -- Touches
     --
 
+    -- We use `forwardToOrigin` (server forwards back to us) rather than `selfSend` (we receive the message
+    -- immediately locally -- i.e., prediction) so that we're more aligned with what other clients see
+
     -- Client tells everyone about a touch press
-    self:defineMessageKind('addTouch', {
+    self:defineMessageKind('beginTouch', {
         reliable = true,
         channel = TOUCHES_CHANNEL,
         forward = true,
@@ -37,9 +40,8 @@ function GameCommon:define()
         selfSend = false,
     })
 
-    -- Client tells everyone about a touch release -- `forwardToOrigin` rather than `selfSend` to be
-    -- more aligned with what others see
-    self:defineMessageKind('removeTouch', {
+    -- Client tells everyone about a touch release
+    self:defineMessageKind('endTouch', {
         reliable = true,
         channel = TOUCHES_CHANNEL,
         forward = true,
@@ -47,8 +49,7 @@ function GameCommon:define()
         selfSend = false,
     })
 
-    -- Client tells everyone about touch position updates -- `forwardToOrigin` rather than `selfSend` to be
-    -- more aligned with what others see
+    -- Client tells everyone about touch position updates
     self:defineMessageKind('touchPosition', {
         reliable = false,
         channel = TOUCHES_CHANNEL,
@@ -80,10 +81,10 @@ end
 
 -- Touches
 
-function GameCommon.receivers:addTouch(time, clientId, touchId, x, y, bodyId, localX, localY)
+function GameCommon.receivers:beginTouch(time, clientId, touchId, x, y, bodyId, localX, localY)
     -- Create touch entry
     local touch = {
-        finished = false,
+        ended = false,
         clientId = clientId,
         x = x,
         y = y,
@@ -110,7 +111,7 @@ function GameCommon.receivers:addTouch(time, clientId, touchId, x, y, bodyId, lo
     self.touches[touchId] = touch
 end
 
-function GameCommon.receivers:removeTouch(time, touchId, x, y)
+function GameCommon.receivers:endTouch(time, touchId, x, y)
     local touch = self.touches[touchId]
     if touch then
         -- Add the final position
@@ -120,8 +121,8 @@ function GameCommon.receivers:removeTouch(time, touchId, x, y)
             y = y,
         })
 
-        -- We'll actually remove it when we exhaust the history while interpolating
-        touch.finished = true
+        -- We'll actually remove the entry when we exhaust the history while interpolating
+        touch.ended = true
     end
 end
 
@@ -151,8 +152,8 @@ function GameCommon:update(dt)
                 table.remove(history, 1)
             end
 
-            -- If touch finished and all events are in the past, remove this touch
-            if touch.finished and (#history <= 1 or history[2].time < interpTime) then
+            -- If touch ended and all events are in the past, remove this touch
+            if touch.ended and (#history <= 1 or history[2].time < interpTime) then
                 if touch.mouseJoint then -- Destroy mouse joint
                     touch.mouseJoint:destroy()
                 end

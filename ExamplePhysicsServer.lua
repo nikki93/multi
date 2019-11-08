@@ -74,7 +74,7 @@ function GameServer:connect(clientId)
 
     -- Touches
     for touchId, touch in pairs(self.touches) do
-        send('addTouch', touch.clientId, touchId, touch.x, touch.y, touch.bodyId, touch.localX, touch.localY)
+        send('beginTouch', touch.clientId, touchId, touch.x, touch.y, touch.bodyId, touch.localX, touch.localY)
     end
 end
 

@@ -135,7 +135,7 @@ function GameClient:touchpressed(loveTouchId, x, y)
             local localX, localY = body:getLocalPoint(x, y)
             local touchId = self:generateId()
 
-            self:send({ kind = 'addTouch' }, self.clientId, touchId, x, y, bodyId, localX, localY)
+            self:send({ kind = 'beginTouch' }, self.clientId, touchId, x, y, bodyId, localX, localY)
 
             self.localTouches[loveTouchId] = {
                 touchId = touchId,
@@ -149,7 +149,7 @@ end
 function GameClient:touchreleased(loveTouchId, x, y)
     local localTouch = self.localTouches[loveTouchId]
     if localTouch then
-        self:send({ kind = 'removeTouch' }, localTouch.touchId, x, y)
+        self:send({ kind = 'endTouch' }, localTouch.touchId, x, y)
         self.localTouches[loveTouchId] = nil
     end
 end
