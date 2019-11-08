@@ -12,7 +12,7 @@ function GameClient:start()
     self.photoImages = {}
 
     -- Client-local touch state
-    self.localTouches = {} -- Indexed by love touch id
+    self.localTouches = {} -- love touch id / 'mouse' -> `touchId`
 end
 
 
@@ -20,6 +20,8 @@ end
 
 function GameClient:connect()
     GameCommon.connect(self)
+
+    self.connectTime = love.timer.getTime()
 
     -- Send `me`
     local me = castle.user.getMe()
@@ -29,19 +31,15 @@ end
 
 -- Mes
 
-function GameClient:loadPhotoImage(clientId)
+function GameClient.receivers:me(time, clientId, me)
+    GameCommon.receivers.me(self, time, clientId, me)
+
     local photoUrl = self.mes[clientId].photoUrl
     if photoUrl then
         network.async(function()
             self.photoImages[clientId] = love.graphics.newImage(photoUrl)
         end)
     end
-end
-
-function GameClient.receivers:me(time, clientId, me)
-    GameCommon.receivers.me(self, time, clientId, me)
-
-    self:loadPhotoImage(clientId)
 end
 
 
@@ -57,15 +55,14 @@ function GameClient:update(dt)
     GameCommon.update(self, dt)
 
     -- Send touch updates
-    for loveTouchId, localTouch in pairs(self.localTouches) do
+    for loveTouchId, touchId in pairs(self.localTouches) do
         local x, y
         if loveTouchId == 'mouse' then
             x, y = love.mouse.getPosition()
         else
             x, y = love.touch.getPosition(loveTouchId)
         end
-        self:send({ kind = 'touchPosition' }, localTouch.touchId, x, y)
-        localTouch.prevX, localTouch.prevY = x, y
+        self:send({ kind = 'touchPosition' }, touchId, x, y)
     end
 
     -- Send physics syncs
@@ -137,19 +134,15 @@ function GameClient:touchpressed(loveTouchId, x, y)
 
             self:send({ kind = 'beginTouch' }, self.clientId, touchId, x, y, bodyId, localX, localY)
 
-            self.localTouches[loveTouchId] = {
-                touchId = touchId,
-                prevX = x,
-                prevY = y,
-            }
+            self.localTouches[loveTouchId] = touchId
         end
     end
 end
 
 function GameClient:touchreleased(loveTouchId, x, y)
-    local localTouch = self.localTouches[loveTouchId]
-    if localTouch then
-        self:send({ kind = 'endTouch' }, localTouch.touchId, x, y)
+    local touchId = self.localTouches[loveTouchId]
+    if touchId then
+        self:send({ kind = 'endTouch' }, touchId, x, y)
         self.localTouches[loveTouchId] = nil
     end
 end
@@ -176,8 +169,8 @@ function GameClient:draw()
                     local startX, startY = body:getWorldPoint(touch.localX, touch.localY)
 
                     local localTouchX, localTouchY
-                    for loveTouchId, localTouch in pairs(self.localTouches) do
-                        if localTouch.touchId == touchId then
+                    for loveTouchId, candidateTouchId in pairs(self.localTouches) do
+                        if candidateTouchId == touchId then
                             if loveTouchId == 'mouse' then
                                 localTouchX, localTouchY = love.mouse.getPosition()
                             else
@@ -237,11 +230,15 @@ function GameClient:draw()
     end
 
 
-    local pingText = ''
+    local networkText = ''
     if self.connected then
-        pingText = '    ping: ' ..self.client.getPing()
+        local timeSinceConnect = love.timer.getTime() - self.connectTime
+
+        networkText = networkText .. '    ping: ' .. self.client.getPing() .. 'ms'
+        networkText = networkText .. '    down: ' .. math.floor(0.001 * (self.client.getENetHost():total_received_data() / timeSinceConnect)) .. 'kbps'
+        networkText = networkText .. '    up: ' .. math.floor(0.001 * (self.client.getENetHost():total_sent_data() / timeSinceConnect)) .. 'kbps'
     end
 
     love.graphics.setColor(0, 0, 0)
-    love.graphics.print('fps: ' .. love.timer.getFPS() .. pingText, 22, 2)
+    love.graphics.print('fps: ' .. love.timer.getFPS() .. networkText, 22, 2)
 end
