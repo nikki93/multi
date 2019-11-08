@@ -46,9 +46,6 @@ function GameServer:start()
     for i = 1, 2 do -- Big boxes
         createDynamicBody(self.physics:newRectangleShape(math.random(90, 120), math.random(200, 300)))
     end
-
-
-    self:send({ kind = 'mainWorldId' }, worldId)
 end
 
 
@@ -75,9 +72,6 @@ function GameServer:connect(clientId)
         channel = MAIN_RELIABLE_CHANNEL,
     })
 
-    -- Scene
-    send('mainWorldId', self.mainWorldId)
-
     -- Touches
     for touchId, touch in pairs(self.touches) do
         send('addTouch', touch.clientId, touchId, touch.x, touch.y, touch.bodyId, touch.localX, touch.localY)
@@ -95,7 +89,8 @@ function GameServer:update(dt)
     GameCommon.update(self, dt)
 
     -- Send physics syncs
-    if self.mainWorldId then
-        self.physics:sendSyncs(self.mainWorldId)
+    local worldId, world = self.physics:getWorld()
+    if worldId then
+        self.physics:sendSyncs(worldId)
     end
 end

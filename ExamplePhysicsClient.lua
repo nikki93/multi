@@ -72,8 +72,9 @@ function GameClient:update(dt)
     end
 
     -- Send physics syncs
-    if self.mainWorldId then
-        self.physics:sendSyncs(self.mainWorldId)
+    local worldId, world = self.physics:getWorld()
+    if worldId then
+        self.physics:sendSyncs(worldId)
     end
 end
 
@@ -101,10 +102,11 @@ function GameClient:mousereleased(x, y, button, isTouch)
 end
 
 function GameClient:touchpressed(loveTouchId, x, y)
-    if self.mainWorld then
+    local worldId, world = self.physics:getWorld()
+    if world then
         -- Find body under touch
         local body, bodyId
-        self.mainWorld:queryBoundingBox(
+        world:queryBoundingBox(
             x - 1, y - 1, x + 1, y + 1,
             function(fixture)
                 -- The query only tests AABB overlap -- check if we've actually touched the shape
@@ -159,12 +161,13 @@ end
 -- Draw
 
 function GameClient:draw()
-    if self.mainWorld then
+    local worldId, world = self.physics:getWorld()
+    if world then
         love.graphics.setLineWidth(2)
 
         local touchLines = {}
 
-        for _, body in ipairs(self.mainWorld:getBodies()) do
+        for _, body in ipairs(world:getBodies()) do
             local bodyId = self.physics:idForObject(body)
             local holderId
 

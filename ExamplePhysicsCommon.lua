@@ -25,19 +25,6 @@ function GameCommon:define()
 
 
     --
-    -- Scene
-    --
-
-    -- Client receives `physicsId` of the world
-    self:defineMessageKind('mainWorldId', {
-        to = 'all',
-        reliable = true,
-        channel = MAIN_RELIABLE_CHANNEL,
-        selfSend = true,
-    })
-
-
-    --
     -- Touches
     --
 
@@ -80,8 +67,6 @@ function GameCommon:start()
 
     self.physics = Physics.new({ game = self })
 
-    self.mainWorldId = nil
-
     self.touches = {}
 end
 
@@ -90,13 +75,6 @@ end
 
 function GameCommon.receivers:me(time, clientId, me)
     self.mes[clientId] = me
-end
-
-
--- Scene
-
-function GameCommon.receivers:mainWorldId(time, mainWorldId)
-    self.mainWorldId = mainWorldId
 end
 
 
@@ -162,13 +140,6 @@ end
 -- Update
 
 function GameCommon:update(dt)
-    -- Set `self.mainWorld` from `self.mainWorldId`
-    if not self.mainWorld then
-        if self.mainWorldId then
-            self.mainWorld = self.physics:objectForId(self.mainWorldId)
-        end
-    end
-
     -- Interpolate touches and move associated mouse joints
     do
         local interpTime = self.time - 0.12
@@ -212,8 +183,9 @@ function GameCommon:update(dt)
         end
     end
 
-    -- Update physics
-    if self.mainWorldId then
-        self.physics:updateWorld(self.mainWorldId, dt, 144)
+    -- Update physics with a fixed rate of 144 Hz
+    local worldId, world = self.physics:getWorld()
+    if worldId then
+        self.physics:updateWorld(worldId, dt, 144)
     end
 end

@@ -473,6 +473,17 @@ function Physics:idForObject(obj)
 end
 
 
+function Physics:getWorld()
+    local resultId, resultWorld
+    for id, world in pairs(self.idToWorld) do
+        if resultId then
+            error('getWorld: there are multiple worlds -- you will need to keep track of their ids yourself')
+        end
+        resultId, resultWorld = id, world
+    end
+    return resultId, resultWorld
+end
+
 function Physics:updateWorld(worldId, dt, updateRate)
     updateRate = updateRate or 144
 
