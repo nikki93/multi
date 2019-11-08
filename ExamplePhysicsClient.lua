@@ -71,14 +71,9 @@ function GameClient:update(dt)
         localTouch.prevX, localTouch.prevY = x, y
     end
 
-    -- Send body syncs
-    for objId in pairs(self.physicsOwnerIdToObjectIds[self.clientId]) do
-        local obj = self.physicsIdToObject[objId]
-        if obj and obj:typeOf('Body') then
-            self:send({
-                kind = 'physics_clientBodySync',
-            }, objId, self:physics_getBodySync(obj))
-        end
+    -- Send physics syncs
+    if self.mainWorldId then
+        self.physics:sendSyncs(self.mainWorldId)
     end
 end
 
@@ -107,25 +102,36 @@ end
 
 function GameClient:touchpressed(loveTouchId, x, y)
     if self.mainWorld then
+        -- Find body under touch
         local body, bodyId
         self.mainWorld:queryBoundingBox(
             x - 1, y - 1, x + 1, y + 1,
             function(fixture)
+                -- The query only tests AABB overlap -- check if we've actually touched the shape
                 if fixture:testPoint(x, y) then
                     local candidateBody = fixture:getBody()
-                    local candidateBodyId = self.physicsObjectToId[candidateBody]
+                    local candidateBodyId = self.physics:idForObject(candidateBody)
 
+                    -- Skip if the body isn't networked
+                    if not candidateBodyId then
+                        return true
+                    end
+
+                    -- Skip if owned by someone else
                     for _, touch in pairs(self.touches) do
                         if touch.bodyId == candidateBodyId and touch.clientId ~= self.clientId then
                             return true
                         end
                     end
 
+                    -- Seems good!
                     body, bodyId = candidateBody, candidateBodyId
                     return false
                 end
                 return true
             end)
+
+        -- If found, add this touch
         if body then
             local localX, localY = body:getLocalPoint(x, y)
             local touchId = self:generateId()
@@ -159,7 +165,7 @@ function GameClient:draw()
         local touchLines = {}
 
         for _, body in ipairs(self.mainWorld:getBodies()) do
-            local bodyId = self.physicsObjectToId[body]
+            local bodyId = self.physics:idForObject(body)
             local holderId
 
             -- Collect touch lines and note holder id
