@@ -490,8 +490,7 @@ function Physics:updateWorld(worldId, dt, updateRate)
     local world = assert(self.idToObject[worldId], 'updateWorld: no world with this id')
     local objectData = self.objectDatas[world]
 
-    objectData.updateTimeRemaining = objectData.updateTimeRemaining or 0
-    objectData.updateTimeRemaining = objectData.updateTimeRemaining + dt
+    objectData.updateTimeRemaining = (objectData.updateTimeRemaining or 0) + dt
     while objectData.updateTimeRemaining >= 1 / updateRate do
         world:update(1 / updateRate)
         objectData.updateTimeRemaining = objectData.updateTimeRemaining - 1 / updateRate
