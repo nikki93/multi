@@ -334,7 +334,7 @@ function Physics.new(opts)
             channel = self.clientSyncsChannel,
             rate = self.clientSyncsRate,
 
-            -- All clients other clients should receive a client's syncs
+            -- All other clients should receive a client's syncs
             forward = true,
 
             -- Client doesn't need to receive its own syncs
