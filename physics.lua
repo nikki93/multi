@@ -1,7 +1,7 @@
 local Physics = {}
 
 
--- A `sync` is a serialization of body state that varies at high frequency
+-- A `sync` is a serialization of frequently-varying object state (such as a body's position or velocity)
 
 local function readBodySync(body)
     local x, y = body:getPosition()
@@ -79,7 +79,7 @@ function Physics.new(opts)
     self.serverSyncsChannel = opts.serverSyncsChannel or 101
     self.clientSyncsChannel = opts.clientSyncsChannel or 102
 
-    self.serverSyncsRate = opts.serverSyncsChannel or 20
+    self.serverSyncsRate = opts.serverSyncsRate or 20
     self.clientSyncsRate = opts.clientSyncsRate or 30
 
     self.kindPrefix = opts.kindPrefix or 'physics_'
@@ -280,7 +280,7 @@ function Physics.new(opts)
 
     -- Server syncs
 
-    self:defineMethod('serverBodySyncs', {
+    self:defineMethod('serverSyncs', {
         defaultSendParams = {
             -- Only server can send server syncs
             from = 'server',
@@ -324,7 +324,7 @@ function Physics.new(opts)
 
     -- Client syncs
 
-    self:defineMethod('clientBodySyncs', {
+    self:defineMethod('clientSyncs', {
         defaultSendParams = {
             -- Only client can send client syncs
             from = 'client',
@@ -510,12 +510,12 @@ function Physics:sendSyncs(worldId)
                 end
             end
         end
-        self:serverBodySyncs(worldId, syncs)
+        self:serverSyncs(worldId, syncs)
     end
 
     if self.game.client then -- Client version
         for obj in pairs(self.ownerIdToObjects[self.game.clientId]) do
-            self:clientBodySync(self.objectDatas[obj].id, readBodySync(obj))
+            self:clientSync(self.objectDatas[obj].id, readBodySync(obj))
         end
     end
 end
