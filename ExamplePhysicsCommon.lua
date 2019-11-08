@@ -1,4 +1,4 @@
-local Physics = require 'physics'
+local Physics = require 'physics' -- You would use the full 'https://...' raw URI to 'physics.lua' here
 
 
 love.physics.setMeter(64)

@@ -1,6 +1,3 @@
-local copas = require 'copas'
-
-
 require 'client' -- You would use the full 'https://...' raw URI to 'client.lua' here
 
 
