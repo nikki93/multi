@@ -1,10 +1,17 @@
-<p align="center">
+<p float="left" align="center">
   <img src="ExampleShooter.gif">
+  <img src="ExamplePhysics.gif">
 </p>
+
+# What is this?
+
+This is a framework for laying out multiplayer gameplay code in a Lua-based game, specifically intended for use with [LÖVE](https://love2d.org/) on the [Castle](http://castle.games/) platform. LÖVE provides an update loop and low-level networking libraries while Castle provides automatic dedicated server hosting (both of them also provide a lot more other stuff, and these aren't necessarily their primary purposes).
+
+The 'cs.lua', 'game.lua', 'server.lua', 'client.lua' and 'physics.lua' files constitute the framework. The rest of the files are examples and documentation. The 'physics.lua' file provides a synchronization system for [love.physics](https://love2d.org/wiki/love.physics) that uses the rest of the framework.
 
 # Examples
 
-Each example has a common module ('...Common.lua'), a server module ('...Server.lua'), a client module ('...Client.lua'). The examples can be launched on a remote server by running opening the '.castle' file in Castle, or with a local server session by opening the '...Local.lua' file in Castle.
+Each example has a common module ('...Common.lua'), a server module ('...Server.lua'), a client module ('...Client.lua'). The examples can be launched on a remote server by opening the '.castle' file in Castle, or with a local server session by opening the '...Local.lua' file in Castle.
 
 ## Walking example
 
@@ -12,7 +19,11 @@ In this example players occupy the same space and can walk around and see each o
 
 ## Shooter example
 
-This example builds on the walking example for player movement. Random rectangular walls are placed and [bump.lua](https://github.com/kikito/bump.lua) is used for collision detection and response. The server owns bullet motion and lifetime, players simply send a 'shoot' message to the server when they want to shoot. Player scores are also maintained and drawn.
+This example builds on the walking example for player movement. Random rectangular walls are placed and [bump.lua](https://github.com/kikito/bump.lua) is used for collision detection and response. The server owns bullet motion and lifetime, players simply send a 'shoot' message to the server when they want to shoot. Player scores are also maintained and drawn. The client also draws 'shadows' of walls to limit the field of view of the player.
+
+## Physics example
+
+This example uses the 'physics.lua' module to provide a synchronized physics scene. Players can drag and move objects around and see others' influences on the scene too.
 
 # Reference
 
