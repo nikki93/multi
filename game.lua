@@ -111,6 +111,9 @@ function Game:_disconnect(clientId)
     if self.server then
         self._clientIds[clientId] = nil
     end
+    if self.client then
+        self.connected = false
+    end
 end
 
 
