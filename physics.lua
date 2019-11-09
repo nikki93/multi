@@ -454,8 +454,15 @@ function Physics:syncNewClient(opts)
         visit(obj, id)
     end
 
-    for id in pairs(temporaryIds) do -- Destroy all temporary objects
+    for id in pairs(temporaryIds) do -- Destroy temporary objects created by visiting
         send('destroyObject', id)
+    end
+
+    for ownerId, objects in pairs(self.ownerIdToObjects) do -- Send ownerships
+        for obj in pairs(objects) do
+            local objectData = self.objectDatas[obj]
+            send('setOwner', objectData.id, ownerId)
+        end
     end
 end
 
@@ -503,7 +510,7 @@ function Physics:sendSyncs(worldId)
     if self.game.server then -- Server version
         local syncs = {}
         for _, body in ipairs(world:getBodies()) do
-            if body:isAwake() then
+            if body:isAwake() and body:getType() ~= 'static' then
                 local objectData = self.objectDatas[body]
                 if objectData then -- Make sure it's a network-tracked body
                     syncs[objectData.id] = { readBodySync(body) }
