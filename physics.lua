@@ -11,10 +11,10 @@ local function readBodySync(body)
     return x, y, vx, vy, a, va
 end
 
-local function writeBodySync(body, x, y, vx, vy, a, va)
-    body:setPosition(x, y)
+local function writeBodySync(body, dt, x, y, vx, vy, a, va)
+    body:setPosition(x + vx * dt, y + vy * dt)
     body:setLinearVelocity(vx, vy)
-    body:setAngle(a)
+    body:setAngle(a + va * dt)
     body:setAngularVelocity(va)
 end
 
@@ -312,7 +312,9 @@ function Physics.new(opts)
             for id, sync in pairs(syncs) do
                 local obj = self.idToObject[id]
                 if obj then
-                    writeBodySync(obj, unpack(sync))
+                    if self.objectDatas[obj].ownerId ~= game.clientId then -- Ignore the sync if we own this object
+                        writeBodySync(obj, 0, unpack(sync))
+                    end
                 end
             end
 
@@ -324,7 +326,7 @@ function Physics.new(opts)
 
     -- Client syncs
 
-    self:defineMethod('clientSyncs', {
+    self:defineMethod('clientSync', {
         defaultSendParams = {
             -- Only client can send client syncs
             from = 'client',
@@ -345,7 +347,7 @@ function Physics.new(opts)
             local obj = self.idToObject[id]
             if obj then
                 if self.objectDatas[obj].ownerId ~= game.clientId then -- Ignore the sync if we own this object
-                    writeBodySync(body, ...)
+                    writeBodySync(obj, game.time - time, ...)
                 end
             end
         end,
