@@ -22,6 +22,24 @@ function GameCommon:define()
         selfSend = true,
         forward = true,
     })
+
+    --
+    -- Players
+    --
+
+    -- Server sends add or remove player events to all
+    self:defineMessageKind('addPlayer', {
+        to = 'all',
+        reliable = true,
+        channel = MAIN_RELIABLE_CHANNEL,
+        selfSend = true,
+    })
+    self:defineMessageKind('removePlayer', {
+        to = 'all',
+        reliable = true,
+        channel = MAIN_RELIABLE_CHANNEL,
+        selfSend = true,
+    })
 end
 
 
@@ -30,7 +48,15 @@ end
 function GameCommon:start()
     self.mes = {}
 
-    self.physics = Physics.new({ game = self })
+    self.physics = Physics.new({
+        game = self,
+
+        -- Let's send physics reliable messages on the main channel so that we can be sure
+        -- the body is available in `addPlayer` receiver etc.
+        reliableChannel = MAIN_RELIABLE_CHANNEL,
+    })
+
+    self.players = {}
 end
 
 
@@ -38,6 +64,22 @@ end
 
 function GameCommon.receivers:me(time, clientId, me)
     self.mes[clientId] = me
+end
+
+
+-- Players
+
+function GameCommon.receivers:addPlayer(time, clientId, bodyId)
+    local player = {
+        clientId = clientId,
+        bodyId = bodyId,
+    }
+
+    self.players[clientId] = player
+end
+
+function GameCommon.receivers:removePlayer(time, clientId)
+    self.players[clientId] = nil
 end
 
 

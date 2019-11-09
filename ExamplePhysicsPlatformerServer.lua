@@ -10,7 +10,7 @@ function GameServer:start()
     GameCommon.start(self)
 
 
-    local worldId = self.physics:newWorld(0, 9.8 * 64, true)
+    local worldId = self.physics:newWorld(0, 32 * 64, true)
 
 
     -- Walls
@@ -30,7 +30,7 @@ function GameServer:start()
     createWall(800 - wallThickness / 2, 450 / 2, wallThickness, 450)
 
 
-    -- -- Dynamic bodies
+    -- Dynamic bodies
 
     local function createDynamicBody(shapeId)
         local bodyId = self.physics:newBody(worldId, math.random(70, 800 - 70), math.random(70, 450 - 70), 'dynamic')
@@ -39,12 +39,8 @@ function GameServer:start()
         self.physics:setRestitution(fixtureId, 0.6)
     end
 
-    for i = 1, 80 do -- Small balls
+    for i = 1, 20 do -- Small balls
         createDynamicBody(self.physics:newCircleShape(math.random(5, 12)))
-    end
-
-    for i = 1, 2 do -- Big boxes
-        createDynamicBody(self.physics:newRectangleShape(math.random(90, 120), math.random(200, 300)))
     end
 end
 
@@ -61,16 +57,27 @@ function GameServer:connect(clientId)
         }, ...)
     end
 
-    -- Mes
+    -- Sync mes
     for clientId, me in pairs(self.mes) do
         send('me', clientId, me)
     end
 
-    -- Physics
+    -- Sync physics (do this before stuff below so that the physics world exists)
     self.physics:syncNewClient({
         clientId = clientId,
         channel = MAIN_RELIABLE_CHANNEL,
     })
+
+    -- Add player body and table entry
+    local x, y = math.random(70, 800 - 70), 450 - 70
+    local bodyId = self.physics:newBody(self.physics:getWorld(), x, y, 'dynamic')
+    local shapeId = self.physics:newRectangleShape(32, 90)
+    local fixtureId = self.physics:newFixture(bodyId, shapeId, 0)
+    self.physics:setFriction(fixtureId, 0.4)
+    self.physics:setLinearDamping(bodyId, 2.8)
+    self.physics:setFixedRotation(bodyId, true)
+    self.physics:setOwner(bodyId, clientId)
+    self:send({ kind = 'addPlayer' }, clientId, bodyId)
 end
 
 function GameServer:disconnect(clientId)
