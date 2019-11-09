@@ -1,6 +1,6 @@
 <p float="left" align="center">
   <img src="ExampleShooter.gif" height="250">
-  <img src="ExamplePhysics.gif" height="250">
+  <img src="ExamplePhysicsDragging.gif" height="250">
 </p>
 
 # What is this?
@@ -21,9 +21,9 @@ In this example players occupy the same space and can walk around and see each o
 
 This example builds on the walking example for player movement. Random rectangular walls are placed and [bump.lua](https://github.com/kikito/bump.lua) is used for collision detection and response. The server owns bullet motion and lifetime, players simply send a 'shoot' message to the server when they want to shoot. Player scores are also maintained and drawn. The client also draws 'shadows' of walls to limit the field of view of the player.
 
-## Physics example
+## Physics dragging example
 
-This example uses the 'physics.lua' module to provide a synchronized physics scene. Players can drag and move objects around and see others' influences on the scene too.
+This example uses the 'physics.lua' module to provide a synchronized physics scene. Players can drag and throw objects around and see others' influences on the scene too.
 
 # Reference
 

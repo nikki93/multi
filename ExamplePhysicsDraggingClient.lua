@@ -1,7 +1,7 @@
 require 'client' -- You would use the full 'https://...' raw URI to 'client.lua' here
 
 
-require 'ExamplePhysicsCommon'
+require 'ExamplePhysicsDraggingCommon'
 
 
 -- Start / stop
