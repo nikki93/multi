@@ -81,4 +81,4 @@ On the client, all LÖVE callbacks are available and the same arguments are pass
 
 # Attributions
 
-Crosshair image in multiplayer example is from https://www.kenney.nl/assets/crosshair-pack. Thanks!
+Crosshair image in multiplayer shooter example is from https://www.kenney.nl/assets/crosshair-pack. Thanks!
