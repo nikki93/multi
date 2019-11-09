@@ -2,6 +2,6 @@ main: ExamplePhysicsPlatformerClient.lua
 multiplayer:
     enabled: true
     serverMain: ExamplePhysicsPlatformerServer.lua
-title: Multiplayer physics dragging example
+title: Multiplayer physics platformer example
 owner: nikki
-description: Physics dragging example for my multiplayer library
+description: Physics platformer example for my multiplayer library
