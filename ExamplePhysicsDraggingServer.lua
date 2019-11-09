@@ -30,7 +30,7 @@ function GameServer:start()
     createWall(800 - wallThickness / 2, 450 / 2, wallThickness, 450)
 
 
-    -- -- Dynamic bodies
+    -- Dynamic bodies
 
     local function createDynamicBody(shapeId)
         local bodyId = self.physics:newBody(worldId, math.random(70, 800 - 70), math.random(70, 450 - 70), 'dynamic')

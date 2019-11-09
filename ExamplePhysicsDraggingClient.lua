@@ -153,8 +153,6 @@ end
 function GameClient:draw()
     local worldId, world = self.physics:getWorld()
     if world then
-        love.graphics.setLineWidth(2)
-
         local touchLines = {}
 
         for _, body in ipairs(world:getBodies()) do
@@ -222,6 +220,7 @@ function GameClient:draw()
         end
 
         -- Draw touch lines
+        love.graphics.setLineWidth(2)
         love.graphics.setColor(1, 0, 1)
         for _, touchLine in ipairs(touchLines) do
             love.graphics.line(unpack(touchLine))
