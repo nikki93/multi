@@ -1,3 +1,3 @@
 USE_LOCAL_SERVER = true
-require 'ExamplePhysicsDraggingServer'
-require 'ExamplePhysicsDraggingClient'
+require 'ExamplePhysicsPlatformerServer'
+require 'ExamplePhysicsPlatformerClient'

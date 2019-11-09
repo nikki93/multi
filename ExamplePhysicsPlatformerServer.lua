@@ -1,7 +1,7 @@
 require 'server' -- You would use the full 'https://...' raw URI to 'server.lua' here
 
 
-require 'ExamplePhysicsDraggingCommon'
+require 'ExamplePhysicsPlatformerCommon'
 
 
 -- Start / stop
@@ -71,11 +71,6 @@ function GameServer:connect(clientId)
         clientId = clientId,
         channel = MAIN_RELIABLE_CHANNEL,
     })
-
-    -- Touches
-    for touchId, touch in pairs(self.touches) do
-        send('beginTouch', touch.clientId, touchId, touch.x, touch.y, touch.bodyId, touch.localX, touch.localY)
-    end
 end
 
 function GameServer:disconnect(clientId)
