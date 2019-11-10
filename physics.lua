@@ -20,7 +20,7 @@ end
 
 
 -- Each physics method has three parts: a message kind definition, a message receiver, and a message send wrapper
-function Physics:defineMethod(methodName, opts)
+function Physics:_defineMethod(methodName, opts)
     local kind = self.kindPrefix .. methodName
 
     -- Kind definition
@@ -30,7 +30,7 @@ function Physics:defineMethod(methodName, opts)
     assert(not self.game.receivers[kind], 'Physics: kind collision detected -- please use `opts.kindPrefix` ' ..
         'if you want multiple `Physics`es within one game')
     self.game.receivers[kind] = assert(opts.receiver,
-        'defineMethod: need to define a receiver for `' .. methodName .. '`')
+        '_defineMethod: need to define a receiver for `' .. methodName .. '`')
 
     -- Sender -- default sender just forwards parameters
     self[methodName] = (opts.sender and opts.sender(kind)) or function(_, ...)
@@ -108,7 +108,7 @@ function Physics.new(opts)
     -- Generated constructors
 
     for _, methodName in ipairs(CONSTRUCTOR_NAMES) do
-        self:defineMethod(methodName, {
+        self:_defineMethod(methodName, {
             defaultSendParams = {
                 -- Only server can construct objects
                 from = 'server',
@@ -137,6 +137,7 @@ function Physics.new(opts)
                         local objectData = {
                             id = id,
                             ownerId = nil,
+                            history = {},
                         }
                         if methodName == 'newWorld' then
                             self.idToWorld[id] = obj
@@ -147,7 +148,7 @@ function Physics.new(opts)
                     else
                         error(methodName .. ': ' .. err)
                     end
-                end)(self:resolveIds(...))
+                end)(self:_resolveIds(...))
             end,
 
             sender = function(kind)
@@ -164,7 +165,7 @@ function Physics.new(opts)
     -- Generated reliable methods
 
     for _, methodName in ipairs(RELIABLE_METHOD_NAMES) do
-        self:defineMethod(methodName, {
+        self:_defineMethod(methodName, {
             defaultSendParams = {
                 -- Reliable method calls can't be missed
                 reliable = true,
@@ -188,7 +189,7 @@ function Physics.new(opts)
                     if not succeeded then
                         error(methodName .. ': ' .. err)
                     end
-                end)(self:resolveIds(...))
+                end)(self:_resolveIds(...))
             end,
         })
     end
@@ -196,7 +197,7 @@ function Physics.new(opts)
 
     -- Object destruction
 
-    self:defineMethod('destroyObject', {
+    self:_defineMethod('destroyObject', {
         defaultSendParams = {
             -- Only server can destroy objects
             from = 'server',
@@ -240,7 +241,7 @@ function Physics.new(opts)
 
     -- Object ownership
 
-    self:defineMethod('setOwner', {
+    self:_defineMethod('setOwner', {
         defaultSendParams = {
             -- Setting owner can't be missed
             reliable = true,
@@ -285,7 +286,7 @@ function Physics.new(opts)
 
     -- Server syncs
 
-    self:defineMethod('serverSyncs', {
+    self:_defineMethod('serverSyncs', {
         defaultSendParams = {
             -- Only server can send server syncs
             from = 'server',
@@ -325,17 +326,22 @@ function Physics.new(opts)
             end
 
             -- We'll need to catch it up to the current tick
-            for i = 1, worldData.tickCount - tickCount do
-                world:update(1 / self.updateRate)
+            if tickCount <= worldData.tickCount then
+                local latestTickCount = worldData.tickCount
+                worldData.tickCount = tickCount
+                while worldData.tickCount < latestTickCount do
+                    self:_tickWorld(world, worldData)
+                end
+            else
+                worldData.tickCount = tickCount
             end
-            worldData.tickCount = math.max(worldData.tickCount, tickCount)
         end,
     })
 
 
     -- Client syncs
 
-    self:defineMethod('clientSync', {
+    self:_defineMethod('clientSync', {
         defaultSendParams = {
             -- Only client can send client syncs
             from = 'client',
@@ -365,12 +371,12 @@ function Physics.new(opts)
 end
 
 
-function Physics:resolveIds(firstArg, ...)
+function Physics:_resolveIds(firstArg, ...)
     local firstResult = self.idToObject[firstArg] or firstArg
     if select('#', ...) == 0 then
         return firstResult
     end
-    return firstResult, self:resolveIds(...)
+    return firstResult, self:_resolveIds(...)
 end
 
 
@@ -500,14 +506,18 @@ function Physics:getWorld()
     return resultId, resultWorld
 end
 
+function Physics:_tickWorld(world, worldData)
+    world:update(1 / self.updateRate)
+    worldData.tickCount = worldData.tickCount + 1
+end
+
 function Physics:updateWorld(worldId, dt)
     local world = assert(self.idToObject[worldId], 'updateWorld: no world with this id')
     local worldData = self.objectDatas[world]
 
     worldData.updateTimeRemaining = worldData.updateTimeRemaining + dt
     while worldData.updateTimeRemaining >= 1 / self.updateRate do
-        world:update(1 / self.updateRate)
-        worldData.tickCount = worldData.tickCount + 1
+        self:_tickWorld(world, worldData)
         worldData.updateTimeRemaining = worldData.updateTimeRemaining - 1 / self.updateRate
     end
 end
