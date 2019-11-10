@@ -184,9 +184,9 @@ function GameCommon:update(dt)
         end
     end
 
-    -- Update physics with a fixed rate of 144 Hz
+    -- Update physics
     local worldId, world = self.physics:getWorld()
     if worldId then
-        self.physics:updateWorld(worldId, dt, 144)
+        self.physics:updateWorld(worldId, dt)
     end
 end

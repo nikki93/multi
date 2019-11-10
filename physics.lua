@@ -82,6 +82,8 @@ function Physics.new(opts)
     self.serverSyncsRate = opts.serverSyncsRate or 20
     self.clientSyncsRate = opts.clientSyncsRate or 30
 
+    self.updateRate = opts.updateRate or 144
+
     self.kindPrefix = opts.kindPrefix or 'physics_'
 
 
@@ -132,13 +134,16 @@ function Physics.new(opts)
                     end, ...)
                     if succeeded then
                         self.idToObject[id] = obj
-                        if methodName == 'newWorld' then
-                            self.idToWorld[id] = obj
-                        end
-                        self.objectDatas[obj] = {
+                        local objectData = {
                             id = id,
                             ownerId = nil,
                         }
+                        if methodName == 'newWorld' then
+                            self.idToWorld[id] = obj
+                            objectData.updateTimeRemaining = 0
+                            objectData.tickCount = 0
+                        end
+                        self.objectDatas[obj] = objectData
                     else
                         error(methodName .. ': ' .. err)
                     end
@@ -297,16 +302,17 @@ function Physics.new(opts)
             selfSend = false,
         },
 
-        receiver = function(game, time, worldId, syncs)
+        receiver = function(game, time, tickCount, worldId, syncs)
             if game.time - time > 0.05 then -- Too far in the past? Just drop...
                 return
             end
 
-            -- Make sure the world exists
+            -- Get world
             local world = self.idToObject[worldId]
             if not world then
                 return
             end
+            local worldData = self.objectDatas[world]
 
             -- Actually apply the syncs
             for id, sync in pairs(syncs) do
@@ -318,8 +324,11 @@ function Physics.new(opts)
                 end
             end
 
-            -- We'll need to catch up to the current time from the time this message was sent
-            self.objectDatas[world].updateTimeRemaining = game.time - time
+            -- We'll need to catch it up to the current tick
+            for i = 1, worldData.tickCount - tickCount do
+                world:update(1 / self.updateRate)
+            end
+            worldData.tickCount = math.max(worldData.tickCount, tickCount)
         end,
     })
 
@@ -336,19 +345,17 @@ function Physics.new(opts)
             channel = self.clientSyncsChannel,
             rate = self.clientSyncsRate,
 
-            -- All other clients should receive a client's syncs
-            forward = true,
+            -- Other clients get updates through `serverSync`
+            forward = false,
 
             -- Client doesn't need to receive its own syncs
             selfSend = false,
         },
 
-        receiver = function(game, time, id, ...)
+        receiver = function(game, time, tickCount, id, ...)
             local obj = self.idToObject[id]
             if obj then
-                if self.objectDatas[obj].ownerId ~= game.clientId then -- Ignore the sync if we own this object
-                    writeBodySync(obj, game.time - time, ...)
-                end
+                writeBodySync(obj, 0, ...)
             end
         end,
     })
@@ -493,16 +500,15 @@ function Physics:getWorld()
     return resultId, resultWorld
 end
 
-function Physics:updateWorld(worldId, dt, updateRate)
-    updateRate = updateRate or 144
-
+function Physics:updateWorld(worldId, dt)
     local world = assert(self.idToObject[worldId], 'updateWorld: no world with this id')
-    local objectData = self.objectDatas[world]
+    local worldData = self.objectDatas[world]
 
-    objectData.updateTimeRemaining = (objectData.updateTimeRemaining or 0) + dt
-    while objectData.updateTimeRemaining >= 1 / updateRate do
-        world:update(1 / updateRate)
-        objectData.updateTimeRemaining = objectData.updateTimeRemaining - 1 / updateRate
+    worldData.updateTimeRemaining = worldData.updateTimeRemaining + dt
+    while worldData.updateTimeRemaining >= 1 / self.updateRate do
+        world:update(1 / self.updateRate)
+        worldData.tickCount = worldData.tickCount + 1
+        worldData.updateTimeRemaining = worldData.updateTimeRemaining - 1 / self.updateRate
     end
 end
 
@@ -519,12 +525,12 @@ function Physics:sendSyncs(worldId)
                 end
             end
         end
-        self:serverSyncs(worldId, syncs)
+        self:serverSyncs(self.objectDatas[world].tickCount, worldId, syncs)
     end
 
     if self.game.client then -- Client version
         for obj in pairs(self.ownerIdToObjects[self.game.clientId]) do
-            self:clientSync(self.objectDatas[obj].id, readBodySync(obj))
+            self:clientSync(self.objectDatas[obj:getWorld()].tickCount, self.objectDatas[obj].id, readBodySync(obj))
         end
     end
 end
