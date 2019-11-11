@@ -589,18 +589,20 @@ function Physics:_tickWorld(world, worldData)
     -- Server keeps full history
     if self.game.server then 
         for _, body in ipairs(world:getBodies()) do
-            if body:getType() ~= 'static' then
-                local objectData = self.objectDatas[body]
-                if objectData then
-                    local history = objectData.history
-                    local clientSyncHistory = objectData.clientSyncHistory
+            local objectData = self.objectDatas[body]
+            if objectData then
+                local history = objectData.history
 
+                -- Clear old history
+                if history[worldData.tickCount - self.historySize] then
+                    history[worldData.tickCount - self.historySize] = nil
+                end
+
+                -- Write to history if not static
+                if body:getType() ~= 'static' then
+                    local clientSyncHistory = objectData.clientSyncHistory
                     writeInterpolatedBodySync(body, interpolatedTick, clientSyncHistory)
                     history[worldData.tickCount] = { readBodySync(body) }
-
-                    if history[worldData.tickCount - self.historySize] then
-                        history[worldData.tickCount - self.historySize] = nil
-                    end
                 end
             end
         end
