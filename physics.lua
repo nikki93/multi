@@ -497,14 +497,12 @@ function Physics.new(opts)
             local d2 = self.objectDatas[body2]
 
             if d1 and d2 then
-                local c = self.game.clientId
-
                 local function check(d1, d2)
-                    if d1.ownerId == c and not d2.strongOwned then
-                        if d2.ownerId ~= c then
+                    if d1.ownerId ~= nil  and not d2.strongOwned then
+                        if d2.ownerId ~= d1.ownerId then
                             if worldData.tickCount - d2.lastSetOwnerTickCount >= self.softOwnershipSetDelay * self.updateRate then
                                 if d1.strongOwned or d1.lastSetOwnerTickCount > d2.lastSetOwnerTickCount then
-                                    self:setOwner(d2.id, c, false, readBodySync(body2))
+                                    self:setOwner(d2.id, d1.ownerId, false, readBodySync(body2))
                                 end
                             end
                         end
@@ -678,8 +676,9 @@ function Physics:_tickWorld(world, worldData)
                     end
 
                     -- Interpolate -- only game server interpolates non-strong-owned objects
+                    local interpolationDelay = (self.game.server and 0.4 or 1) * self.interpolationDelay
                     if self.game.server or objectData.strongOwned then
-                        local interpolatedTick = math.floor(worldData.tickCount - self.interpolationDelay * self.updateRate)
+                        local interpolatedTick = math.floor(worldData.tickCount - interpolationDelay * self.updateRate)
                         writeInterpolatedBodySync(obj, interpolatedTick, clientSyncHistory)
                     end
                 end
