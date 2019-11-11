@@ -172,6 +172,7 @@ function Physics.new(opts)
                             self.idToWorld[id] = obj
                             objectData.updateTimeRemaining = 0
                             objectData.tickCount = 0
+                            obj:setCallbacks(self._beginContact, self._endContact, self._preSolve, self._postSolve)
                         end
                         self.objectDatas[obj] = objectData
                     else
@@ -282,7 +283,7 @@ function Physics.new(opts)
             forward = true,
         },
 
-        receiver = function(_, time, id, newOwnerId)
+        receiver = function(_, time, id, newOwnerId, strongOwned)
             local obj = self.idToObject[id]
             if not obj then
                 error('setOwner: no / bad `id`')
@@ -302,12 +303,19 @@ function Physics.new(opts)
                     if objectData.ownerId == newOwnerId then
                         return -- Already owned by this client, nothing to do
                     else
-                        error('setOwner: object already owned by different client')
+                        self.ownerIdToObjects[objectData.ownerId][obj] = nil
+                        objectData.ownerId = nil
                     end
                 end
 
                 self.ownerIdToObjects[newOwnerId][obj] = true
                 objectData.ownerId = newOwnerId
+            end
+
+            if strongOwned then
+                objectData.strongOwned = true
+            else
+                objectData.strongOwned = nil
             end
         end,
     })
@@ -448,6 +456,31 @@ function Physics.new(opts)
     })
 
 
+    -- Collision callbacks
+
+    if self.game.client then
+        function self._beginContact(fixture1, fixture2, contact)
+            local body1 = fixture1:getBody()
+            local body2 = fixture2:getBody()
+
+            local objectData1 = self.objectDatas[body1]
+            local objectData2 = self.objectDatas[body2]
+
+            if objectData1 and objectData2 then
+                if objectData1.ownerId == self.game.clientId and objectData2.ownerId ~= self.game.clientId and not objectData2.strongOwned then
+                    self:setOwner(objectData2.id, self.game.clientId, false)
+                end
+                if objectData2.ownerId == self.game.clientId and objectData1.ownerId ~= self.game.clientId and not objectData1.strongOwned then
+                    self:setOwner(objectData1.id, self.game.clientId, false)
+                end
+            end
+        end
+
+        function self._endContact(fixture1, fixture2, contact)
+        end
+    end
+
+
     return self
 end
 
@@ -557,7 +590,7 @@ function Physics:syncNewClient(opts)
     for ownerId, objects in pairs(self.ownerIdToObjects) do -- Send ownerships
         for obj in pairs(objects) do
             local objectData = self.objectDatas[obj]
-            send('setOwner', objectData.id, ownerId)
+            send('setOwner', objectData.id, ownerId, objectData.strongOwned)
         end
     end
 end
