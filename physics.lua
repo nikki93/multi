@@ -595,28 +595,6 @@ function Physics:_tickWorld(world, worldData)
     local interpolationDelay = (self.server and 0.25 or 1) * self.interpolationDelay
     local interpolatedTick = math.floor(worldData.tickCount - interpolationDelay * self.updateRate)
 
-    -- Server keeps full history
-    if self.game.server then 
-        for _, body in ipairs(world:getBodies()) do
-            local objectData = self.objectDatas[body]
-            if objectData then
-                local history = objectData.history
-
-                -- Clear old history
-                if history[worldData.tickCount - self.historySize] then
-                    history[worldData.tickCount - self.historySize] = nil
-                end
-
-                -- Write to history if not static
-                if body:getType() ~= 'static' then
-                    local clientSyncHistory = objectData.clientSyncHistory
-                    writeInterpolatedBodySync(body, interpolatedTick, clientSyncHistory)
-                    history[worldData.tickCount] = { readBodySync(body) }
-                end
-            end
-        end
-    end
-
     -- Interpolate objects owned by others
     for ownerId, objs in pairs(self.ownerIdToObjects) do
         if ownerId ~= self.game.clientId then
@@ -632,6 +610,26 @@ function Physics:_tickWorld(world, worldData)
 
                     -- Interpolate
                     writeInterpolatedBodySync(obj, interpolatedTick, clientSyncHistory)
+                end
+            end
+        end
+    end
+
+    -- Server keeps full history
+    if self.game.server then
+        for _, body in ipairs(world:getBodies()) do
+            local objectData = self.objectDatas[body]
+            if objectData then
+                local history = objectData.history
+
+                -- Clear old history
+                if history[worldData.tickCount - self.historySize] then
+                    history[worldData.tickCount - self.historySize] = nil
+                end
+
+                -- Write to history if not static
+                if body:getType() ~= 'static' then
+                    history[worldData.tickCount] = { readBodySync(body) }
                 end
             end
         end
