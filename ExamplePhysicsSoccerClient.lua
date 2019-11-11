@@ -92,6 +92,17 @@ function GameClient:update(dt)
     -- Common update
     GameCommon.update(self, dt)
 
+    -- Keep player in bounds
+    if ownPlayer then
+        local ownPlayerX, ownPlayerY = ownPlayerBody:getPosition()
+        if ownPlayerX > 800 - 10 then
+            ownPlayerBody:setPosition(800 - 10, ownPlayerY)
+        end
+        if ownPlayerX < 10 then
+            ownPlayerBody:setPosition(10, ownPlayerY)
+        end
+    end
+
     -- Send physics syncs
     local worldId, world = self.physics:getWorld()
     if worldId then
