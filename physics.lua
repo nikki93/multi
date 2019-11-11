@@ -29,7 +29,6 @@ local function writeInterpolatedBodySync(body, interpolatedTick, history)
             afterTick = i
         end
     end
-
     if beforeTick and afterTick then
         local f = (interpolatedTick - beforeTick) / (afterTick - beforeTick)
         local beforeSync, afterSync = history[beforeTick], history[afterTick]
@@ -416,11 +415,13 @@ function Physics.new(opts)
                     elseif tickCount < worldData.tickCount then -- Old tick -- rewind then play back
                         -- Rewind
                         for _, body in ipairs(world:getBodies()) do
-                            local objectData = self.objectDatas[body]
-                            if objectData then
-                                local rewindSync = objectData.clientSyncHistory[tickCount] or objectData.history[tickCount]
-                                if rewindSync then
-                                    writeBodySync(body, unpack(rewindSync))
+                            if body:getType() ~= 'static' then
+                                local objectData = self.objectDatas[body]
+                                if objectData then
+                                    local rewindSync = objectData.clientSyncHistory[tickCount] or objectData.history[tickCount]
+                                    if rewindSync then -- Won't exist if the object was created after this old tick
+                                        writeBodySync(body, unpack(rewindSync))
+                                    end
                                 end
                             end
                         end
@@ -588,16 +589,18 @@ function Physics:_tickWorld(world, worldData)
     -- Server keeps full history
     if self.game.server then 
         for _, body in ipairs(world:getBodies()) do
-            local objectData = self.objectDatas[body]
-            if objectData then
-                local history = objectData.history
-                local clientSyncHistory = objectData.clientSyncHistory
+            if body:getType() ~= 'static' then
+                local objectData = self.objectDatas[body]
+                if objectData then
+                    local history = objectData.history
+                    local clientSyncHistory = objectData.clientSyncHistory
 
-                writeInterpolatedBodySync(body, interpolatedTick, clientSyncHistory)
-                history[worldData.tickCount] = { readBodySync(body) }
+                    writeInterpolatedBodySync(body, interpolatedTick, clientSyncHistory)
+                    history[worldData.tickCount] = { readBodySync(body) }
 
-                if history[worldData.tickCount - self.historySize] then
-                    history[worldData.tickCount - self.historySize] = nil
+                    if history[worldData.tickCount - self.historySize] then
+                        history[worldData.tickCount - self.historySize] = nil
+                    end
                 end
             end
         end
