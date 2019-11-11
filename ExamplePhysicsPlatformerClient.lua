@@ -121,37 +121,45 @@ end
 -- Draw
 
 function GameClient:draw()
-    do -- Player avatars
-        for clientId, player in pairs(self.players) do
-            local photoImage = self.photoImages[clientId]
-            if photoImage then
-                local body = self.physics:objectForId(player.bodyId)
-                local scale = math.min(32 / photoImage:getWidth(), 32 / photoImage:getHeight())
-                love.graphics.draw(photoImage, body:getX() - 16, body:getY() - 45, 0, scale)
-            end
-        end
-    end
-
-    do -- Physics wireframes
+    do -- Physics bodies
         local worldId, world = self.physics:getWorld()
         if world then
             for _, body in ipairs(world:getBodies()) do
                 local bodyId = self.physics:idForObject(body)
+                local ownerId = self.physics:getOwner(bodyId)
+                if ownerId then
+                    local c = ownerId + 1
+                    love.graphics.setColor(c % 2, math.floor(c / 2) % 2, math.floor(c / 4) % 2)
+                else
+                    love.graphics.setColor(1, 1, 1)
+                end
 
                 -- Draw shapes
                 for _, fixture in ipairs(body:getFixtures()) do
                     local shape = fixture:getShape()
                     local ty = shape:getType()
                     if ty == 'circle' then
-                        love.graphics.circle('line', body:getX(), body:getY(), shape:getRadius())
+                        love.graphics.circle('fill', body:getX(), body:getY(), shape:getRadius())
                     elseif ty == 'polygon' then
-                        love.graphics.polygon('line', body:getWorldPoints(shape:getPoints()))
+                        love.graphics.polygon('fill', body:getWorldPoints(shape:getPoints()))
                     elseif ty == 'edge' then
-                        love.graphics.polygon('line', body:getWorldPoints(shape:getPoints()))
+                        love.graphics.polygon('fill', body:getWorldPoints(shape:getPoints()))
                     elseif ty == 'chain' then
-                        love.graphics.polygon('line', body:getWorldPoints(shape:getPoints()))
+                        love.graphics.polygon('fill', body:getWorldPoints(shape:getPoints()))
                     end
                 end
+            end
+        end
+    end
+
+do -- Player avatars
+        love.graphics.setColor(1, 1, 1)
+        for clientId, player in pairs(self.players) do
+            local photoImage = self.photoImages[clientId]
+            if photoImage then
+                local body = self.physics:objectForId(player.bodyId)
+                local scale = math.min(32 / photoImage:getWidth(), 32 / photoImage:getHeight())
+                love.graphics.draw(photoImage, body:getX() - 16, body:getY() - 45, 0, scale)
             end
         end
     end
@@ -164,7 +172,7 @@ function GameClient:draw()
             networkText = networkText .. '    down: ' .. math.floor(0.001 * (self.client.getENetHost():total_received_data() / timeSinceConnect)) .. 'kbps'
             networkText = networkText .. '    up: ' .. math.floor(0.001 * (self.client.getENetHost():total_sent_data() / timeSinceConnect)) .. 'kbps'
         end
-        love.graphics.setColor(1, 1, 1)
+        love.graphics.setColor(0, 0, 0)
         love.graphics.print('fps: ' .. love.timer.getFPS() .. networkText, 22, 2)
     end
 end

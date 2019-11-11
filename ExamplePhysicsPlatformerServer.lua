@@ -36,10 +36,16 @@ function GameServer:start()
         local bodyId = self.physics:newBody(worldId, math.random(70, 800 - 70), math.random(70, 70), 'dynamic')
         local fixtureId = self.physics:newFixture(bodyId, shapeId, 1)
         self.physics:destroyObject(shapeId)
+        self.physics:setFriction(fixtureId, 0.4)
+        self.physics:setLinearDamping(bodyId, 2.8)
     end
 
-    for i = 1, 8 do -- Balls
-        createDynamicBody(self.physics:newCircleShape(math.random(5, 12)))
+    -- for i = 1, 10 do -- Rectangles
+    --     local s = math.random(20, 30)
+    --     createDynamicBody(self.physics:newRectangleShape(s, s))
+    -- end
+    for i = 1, 3 do -- Circles
+        createDynamicBody(self.physics:newCircleShape(math.random(10, 20)))
     end
 end
 

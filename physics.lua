@@ -108,7 +108,8 @@ function Physics.new(opts)
 
     self.updateRate = opts.updateRate or 144
     self.historySize = opts.historySize or (self.updateRate * 2)
-    self.interpolationDelay = opts.interpolationDelay or 0.12
+    self.interpolationDelay = opts.interpolationDelay or 0.1
+    self.softOwnershipSetDelay = opts.softOwnershipSetDelay or 0.8
 
     self.kindPrefix = opts.kindPrefix or 'physics_'
 
@@ -163,6 +164,7 @@ function Physics.new(opts)
                         local objectData = {
                             id = id,
                             ownerId = nil,
+                            lastSetOwnerTickCount = 0,
                             clientSyncHistory = {},
                         }
                         if self.game.server then
@@ -283,7 +285,7 @@ function Physics.new(opts)
             forward = true,
         },
 
-        receiver = function(_, time, id, newOwnerId, strongOwned)
+        receiver = function(_, time, tickCount, id, newOwnerId, strongOwned, ...)
             local obj = self.idToObject[id]
             if not obj then
                 error('setOwner: no / bad `id`')
@@ -316,6 +318,25 @@ function Physics.new(opts)
                 objectData.strongOwned = true
             else
                 objectData.strongOwned = nil
+            end
+
+            if select('#', ...) > 0 then
+                local worldData = self.objectDatas[obj:getWorld()]
+
+                objectData.clientSyncHistory = {}
+
+                local interpolatedTick = math.floor(worldData.tickCount - self.interpolationDelay * self.updateRate)
+                objectData.clientSyncHistory[interpolatedTick] = { readBodySync(obj) }
+                objectData.clientSyncHistory[tickCount] = { ... }
+            end
+
+            objectData.lastSetOwnerTickCount = tickCount
+        end,
+
+        sender = function(kind)
+            return function(_, id, ...)
+                local obj = self.idToObject[id]
+                game:send({ kind = kind }, obj and self.objectDatas[obj:getWorld()].tickCount or 0, id, ...)
             end
         end,
     })
@@ -361,7 +382,7 @@ function Physics.new(opts)
             -- Actually apply the syncs
             for id, sync in pairs(syncs) do
                 local obj = self.idToObject[id]
-                if obj then
+                if obj and self.objectDatas[obj].clientId ~= self.game.clientId then
                     writeBodySync(obj, unpack(sync))
                 end
             end
@@ -404,7 +425,7 @@ function Physics.new(opts)
             selfSend = false,
         },
 
-        receiver = function(game, time, tickCount, worldId, syncs)
+        receiver = function(game, time, clientId, tickCount, worldId, syncs)
             -- Get world
             local world = self.idToObject[worldId]
             if not world then
@@ -421,7 +442,10 @@ function Physics.new(opts)
             for id, sync in pairs(syncs) do
                 local obj = self.idToObject[id]
                 if obj then
-                    self.objectDatas[obj].clientSyncHistory[tickCount] = { unpack(sync) }
+                    local objectData = self.objectDatas[obj]
+                    if objectData.ownerId == clientId then
+                        objectData.clientSyncHistory[tickCount] = { unpack(sync) }
+                    end
                 end
             end
 
@@ -459,20 +483,35 @@ function Physics.new(opts)
     -- Collision callbacks
 
     if self.game.client then
-        function self._beginContact(fixture1, fixture2, contact)
+        function self._postSolve(fixture1, fixture2, contact)
             local body1 = fixture1:getBody()
             local body2 = fixture2:getBody()
 
-            local objectData1 = self.objectDatas[body1]
-            local objectData2 = self.objectDatas[body2]
+            if body1:getType() == 'static' or body2:getType() == 'static' then
+                return
+            end
 
-            if objectData1 and objectData2 then
-                if objectData1.ownerId == self.game.clientId and objectData2.ownerId ~= self.game.clientId and not objectData2.strongOwned then
-                    self:setOwner(objectData2.id, self.game.clientId, false)
+            local worldData = self.objectDatas[body1:getWorld()]
+
+            local d1 = self.objectDatas[body1]
+            local d2 = self.objectDatas[body2]
+
+            if d1 and d2 then
+                local c = self.game.clientId
+
+                local function check(d1, d2)
+                    if d1.ownerId == c and not d2.strongOwned then
+                        if d2.ownerId ~= c then
+                            if worldData.tickCount - d2.lastSetOwnerTickCount >= self.softOwnershipSetDelay * self.updateRate then
+                                if d1.strongOwned or d1.lastSetOwnerTickCount > d2.lastSetOwnerTickCount then
+                                    self:setOwner(d2.id, c, false, readBodySync(body2))
+                                end
+                            end
+                        end
+                    end
                 end
-                if objectData2.ownerId == self.game.clientId and objectData1.ownerId ~= self.game.clientId and not objectData1.strongOwned then
-                    self:setOwner(objectData1.id, self.game.clientId, false)
-                end
+                check(d1, d2)
+                check(d2, d1)
             end
         end
 
@@ -590,7 +629,7 @@ function Physics:syncNewClient(opts)
     for ownerId, objects in pairs(self.ownerIdToObjects) do -- Send ownerships
         for obj in pairs(objects) do
             local objectData = self.objectDatas[obj]
-            send('setOwner', objectData.id, ownerId, objectData.strongOwned)
+            send('setOwner', objectData.lastSetOwnerTickCount, objectData.id, ownerId, objectData.strongOwned)
         end
     end
 end
@@ -624,15 +663,12 @@ function Physics:_tickWorld(world, worldData)
     world:update(1 / self.updateRate)
     worldData.tickCount = worldData.tickCount + 1
 
-    -- Pick which tick we want to interpolate objects owned by others to
-    local interpolationDelay = (self.server and 0.25 or 1) * self.interpolationDelay
-    local interpolatedTick = math.floor(worldData.tickCount - interpolationDelay * self.updateRate)
-
     -- Interpolate objects owned by others
     for ownerId, objs in pairs(self.ownerIdToObjects) do
         if ownerId ~= self.game.clientId then
             for obj in pairs(objs) do
-                local clientSyncHistory = self.objectDatas[obj].clientSyncHistory
+                local objectData = self.objectDatas[obj]
+                local clientSyncHistory = objectData.clientSyncHistory
                 if next(clientSyncHistory) ~= nil then
                     -- Clear out old history
                     for i in pairs(clientSyncHistory) do
@@ -641,8 +677,11 @@ function Physics:_tickWorld(world, worldData)
                         end
                     end
 
-                    -- Interpolate
-                    writeInterpolatedBodySync(obj, interpolatedTick, clientSyncHistory)
+                    -- Interpolate -- only game server interpolates non-strong-owned objects
+                    if self.game.server or objectData.strongOwned then
+                        local interpolatedTick = math.floor(worldData.tickCount - self.interpolationDelay * self.updateRate)
+                        writeInterpolatedBodySync(obj, interpolatedTick, clientSyncHistory)
+                    end
                 end
             end
         end
@@ -699,11 +738,25 @@ function Physics:sendSyncs(worldId)
     if self.game.client then -- Client version
         local syncs = {}
         for obj in pairs(self.ownerIdToObjects[self.game.clientId]) do
+            local objectData = self.objectDatas[obj]
+
             if self.objectDatas[obj:getWorld()].id == worldId then
-                syncs[self.objectDatas[obj].id] = { readBodySync(obj) }
+                syncs[objectData.id] = { readBodySync(obj) }
+            end
+
+            if not objectData.strongOwned and not obj:isAwake() then
+                self:setOwner(objectData.id, nil, false)
             end
         end
-        self:clientSyncs(self.objectDatas[world].tickCount, worldId, syncs)
+        self:clientSyncs(self.game.clientId, self.objectDatas[world].tickCount, worldId, syncs)
+    end
+end
+
+
+function Physics:getOwner(id)
+    local objectData = self.objectDatas[self.idToObject[id]]
+    if objectData then
+        return objectData.ownerId, objectData.strongOwned
     end
 end
 
