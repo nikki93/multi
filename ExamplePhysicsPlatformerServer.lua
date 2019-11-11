@@ -33,13 +33,13 @@ function GameServer:start()
     -- Dynamic bodies
 
     local function createDynamicBody(shapeId)
-        local bodyId = self.physics:newBody(worldId, math.random(70, 800 - 70), math.random(70, 450 - 70), 'dynamic')
+        local bodyId = self.physics:newBody(worldId, math.random(70, 800 - 70), math.random(70, 70), 'dynamic')
         local fixtureId = self.physics:newFixture(bodyId, shapeId, 1)
         self.physics:destroyObject(shapeId)
     end
 
-    for i = 1, 20 do -- Balls
-        createDynamicBody(self.physics:newCircleShape(math.random(14, 30)))
+    for i = 1, 8 do -- Balls
+        createDynamicBody(self.physics:newCircleShape(math.random(5, 12)))
     end
 end
 
@@ -56,16 +56,21 @@ function GameServer:connect(clientId)
         }, ...)
     end
 
-    -- Sync mes
-    for clientId, me in pairs(self.mes) do
-        send('me', clientId, me)
-    end
-
     -- Sync physics (do this before stuff below so that the physics world exists)
     self.physics:syncNewClient({
         clientId = clientId,
         channel = MAIN_RELIABLE_CHANNEL,
     })
+
+    -- Sync mes
+    for clientId, me in pairs(self.mes) do
+        send('me', clientId, me)
+    end
+
+    -- Sync players
+    for clientId, player in pairs(self.players) do
+        send('addPlayer', clientId, player.bodyId)
+    end
 
     -- Add player body and table entry
     local x, y = math.random(70, 800 - 70), 450 - 70
@@ -75,8 +80,14 @@ function GameServer:connect(clientId)
     self.physics:setFriction(fixtureId, 0.4)
     self.physics:setLinearDamping(bodyId, 2.8)
     self.physics:setFixedRotation(bodyId, true)
-    self.physics:setOwner(bodyId, clientId)
+    self.physics:setOwner(bodyId, clientId, true)
     self:send({ kind = 'addPlayer' }, clientId, bodyId)
+
+    -- Try having client own everything
+    -- local worldId, world = self.physics:getWorld()
+    -- for _, body in ipairs(world:getBodies()) do
+    --     self.physics:setOwner(self.physics:idForObject(body), clientId)
+    -- end
 end
 
 function GameServer:disconnect(clientId)

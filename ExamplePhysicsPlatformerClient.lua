@@ -121,6 +121,17 @@ end
 -- Draw
 
 function GameClient:draw()
+    do -- Player avatars
+        for clientId, player in pairs(self.players) do
+            local photoImage = self.photoImages[clientId]
+            if photoImage then
+                local body = self.physics:objectForId(player.bodyId)
+                local scale = math.min(32 / photoImage:getWidth(), 32 / photoImage:getHeight())
+                love.graphics.draw(photoImage, body:getX() - 16, body:getY() - 45, 0, scale)
+            end
+        end
+    end
+
     do -- Physics wireframes
         local worldId, world = self.physics:getWorld()
         if world then
