@@ -1,0 +1,7 @@
+main: ExamplePhysicsSoccerClient.lua
+multiplayer:
+    enabled: true
+    serverMain: ExamplePhysicsSoccerServer.lua
+title: Multiplayer physics soccer example
+owner: nikki
+description: Physics soccer example for my multiplayer library
