@@ -153,7 +153,7 @@ function GameClient:draw()
             networkText = networkText .. '    down: ' .. math.floor(0.001 * (self.client.getENetHost():total_received_data() / timeSinceConnect)) .. 'kbps'
             networkText = networkText .. '    up: ' .. math.floor(0.001 * (self.client.getENetHost():total_sent_data() / timeSinceConnect)) .. 'kbps'
         end
-        love.graphics.setColor(0, 0, 0)
+        love.graphics.setColor(1, 1, 1)
         love.graphics.print('fps: ' .. love.timer.getFPS() .. networkText, 22, 2)
     end
 end

@@ -34,13 +34,12 @@ function GameServer:start()
 
     local function createDynamicBody(shapeId)
         local bodyId = self.physics:newBody(worldId, math.random(70, 800 - 70), math.random(70, 450 - 70), 'dynamic')
-        local fixtureId = self.physics:newFixture(bodyId, shapeId, 1.5)
+        local fixtureId = self.physics:newFixture(bodyId, shapeId, 1)
         self.physics:destroyObject(shapeId)
-        self.physics:setRestitution(fixtureId, 0.6)
     end
 
-    for i = 1, 20 do -- Small balls
-        createDynamicBody(self.physics:newCircleShape(math.random(5, 12)))
+    for i = 1, 20 do -- Balls
+        createDynamicBody(self.physics:newCircleShape(math.random(14, 30)))
     end
 end
 
