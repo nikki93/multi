@@ -108,7 +108,7 @@ function Physics.new(opts)
 
     self.updateRate = opts.updateRate or 144
     self.historySize = opts.historySize or (self.updateRate * 2)
-    self.interpolationDelay = opts.interpolationDelay or 0.1
+    self.interpolationDelay = opts.interpolationDelay or 0.08
     self.softOwnershipSetDelay = opts.softOwnershipSetDelay or 0.8
 
     self.kindPrefix = opts.kindPrefix or 'physics_'
@@ -130,6 +130,11 @@ function Physics.new(opts)
             return v
         end,
     })
+
+
+    -- Other state
+
+    self.lastNetworkIssueTime = nil
 
 
     -- Generated constructors
@@ -176,6 +181,9 @@ function Physics.new(opts)
                             objectData.tickCount = 0
                             objectData.nextRewindFrom = nil
                             obj:setCallbacks(self._beginContact, self._endContact, self._preSolve, self._postSolve)
+                            if self.game.client then
+                                objectData.lastServerSyncTime = nil
+                            end
                         end
                         self.objectDatas[obj] = objectData
                     else
@@ -363,16 +371,13 @@ function Physics.new(opts)
         },
 
         receiver = function(game, time, tickCount, worldId, syncs)
-            if game.time - time > 0.05 then -- Too far in the past? Just drop...
-                return
-            end
-
             -- Get world
             local world = self.idToObject[worldId]
             if not world then
                 return
             end
             local worldData = self.objectDatas[world]
+            worldData.lastServerSyncTime = math.max(worldData.lastServerSyncTime or time, time)
 
             -- Save state of objects we own
             local saves = {}
@@ -653,10 +658,10 @@ function Physics:_tickWorld(world, worldData)
                         end
                     end
 
-                    -- Interpolate -- only game server interpolates non-strong-owned objects
+                    -- Interpolate
                     local interpolationDelay = self.interpolationDelay
-                    if not obj.strongOwned then
-                        interpolationDelay = 0.2 * interpolationDelay
+                    if not objectData.strongOwned then
+                        interpolationDelay = 0.8 * interpolationDelay
                     end
                     local interpolatedTick = math.floor(worldData.tickCount - interpolationDelay * self.updateRate)
                     writeInterpolatedBodySync(obj, interpolatedTick, clientSyncHistory)
@@ -727,11 +732,18 @@ function Physics:updateWorld(worldId, dt)
     end
 
     -- Catch up world to current time
+    if self.game.client and (not worldData.lastServerSyncTime or self.game.time - worldData.lastServerSyncTime > 1.25 * self.interpolationDelay) then
+        if worldData.lastServerSyncTime then
+            self.lastNetworkIssueTime = love.timer.getTime()
+        end
+        return false
+    end
     worldData.updateTimeRemaining = worldData.updateTimeRemaining + dt
     while worldData.updateTimeRemaining >= 1 / self.updateRate do
         self:_tickWorld(world, worldData)
         worldData.updateTimeRemaining = worldData.updateTimeRemaining - 1 / self.updateRate
     end
+    return true
 end
 
 function Physics:sendSyncs(worldId)
@@ -773,6 +785,11 @@ function Physics:getOwner(id)
     if objectData then
         return objectData.ownerId, objectData.strongOwned
     end
+end
+
+
+function Physics:networkIssueDetected()
+    return self.lastNetworkIssueTime and love.timer.getTime() - self.lastNetworkIssueTime < 1.5
 end
 
 

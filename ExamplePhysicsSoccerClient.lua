@@ -173,6 +173,9 @@ do -- Player avatars
             networkText = networkText .. '    ping: ' .. self.client.getPing() .. 'ms'
             networkText = networkText .. '    down: ' .. math.floor(0.001 * (self.client.getENetHost():total_received_data() / timeSinceConnect)) .. 'kbps'
             networkText = networkText .. '    up: ' .. math.floor(0.001 * (self.client.getENetHost():total_sent_data() / timeSinceConnect)) .. 'kbps'
+            if self.physics:networkIssueDetected() then
+                networkText = networkText .. '    network issue'
+            end
         end
         love.graphics.setColor(0, 0, 0)
         love.graphics.print('fps: ' .. love.timer.getFPS() .. networkText, 22, 2)
