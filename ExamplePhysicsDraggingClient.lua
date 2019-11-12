@@ -236,6 +236,7 @@ function GameClient:draw()
         networkText = networkText .. '    ping: ' .. self.client.getPing() .. 'ms'
         networkText = networkText .. '    down: ' .. math.floor(0.001 * (self.client.getENetHost():total_received_data() / timeSinceConnect)) .. 'kbps'
         networkText = networkText .. '    up: ' .. math.floor(0.001 * (self.client.getENetHost():total_sent_data() / timeSinceConnect)) .. 'kbps'
+        networkText = networkText .. '    mem: ' .. math.floor(collectgarbage('count') / 1024) .. 'mb'
     end
 
     love.graphics.setColor(0, 0, 0)
