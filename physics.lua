@@ -264,7 +264,7 @@ function Physics.new(opts)
             -- Clear table entries
             local objectData = self.objectDatas[obj]
             if objectData.ownerId then
-                self.ownerIdToObjects[objData.ownerId][obj] = nil
+                self.ownerIdToObjects[objectData.ownerId][obj] = nil
             end
             self.objectDatas[obj] = nil
             self.idToWorld[id] = nil
