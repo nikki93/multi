@@ -1,4 +1,5 @@
-require 'client' -- You would use the full 'https://...' raw URI to 'client.lua' here
+Game = Game or {}
+require('../client', { root = true }) -- You would use the full 'https://...' raw URI to 'client.lua' here
 
 
 require 'ExampleWalkingCommon'
@@ -6,8 +7,8 @@ require 'ExampleWalkingCommon'
 
 -- Start / stop
 
-function GameClient:start()
-    GameCommon.start(self)
+function Game.Client:start()
+    Game.Common.start(self)
 
     -- Client-local data
     self.photos = {}
@@ -16,7 +17,7 @@ end
 
 -- Utils
 
-function GameClient:loadPhoto(clientId)
+function Game.Client:loadPhoto(clientId)
     local photoUrl = self.mes[clientId].photoUrl
     if photoUrl then
         network.async(function()
@@ -28,8 +29,8 @@ end
 
 -- Connect / disconnect
 
-function GameClient:connect()
-    GameCommon.connect(self)
+function Game.Client:connect()
+    Game.Common.connect(self)
 
     -- Send `me`
     local me = castle.user.getMe()
@@ -39,14 +40,14 @@ end
 
 -- Receivers
 
-function GameClient.receivers:me(time, clientId, me)
-    GameCommon.receivers.me(self, time, clientId, me)
+function Game.Client.receivers:me(time, clientId, me)
+    Game.Common.receivers.me(self, time, clientId, me)
 
     -- When we get a `me`, load the photo
     self:loadPhoto(clientId)
 end
 
-function GameClient.receivers:fullState(time, state)
+function Game.Client.receivers:fullState(time, state)
     -- Read players
     for clientId, player in pairs(state.players) do
         self.players[clientId] = player
@@ -65,7 +66,7 @@ end
 
 local PLAYER_SPEED = 200
 
-function GameClient:update(dt)
+function Game.Client:update(dt)
     -- Not connected?
     if not self.connected then
         return
@@ -94,7 +95,7 @@ function GameClient:update(dt)
     end
 
     -- Do common update
-    GameCommon.update(self)
+    Game.Common.update(self)
 
     -- Send own player position
     if ownPlayer then
@@ -107,7 +108,7 @@ end
 
 -- Draw
 
-function GameClient:draw()
+function Game.Client:draw()
     -- Draw players
     for clientId, player in pairs(self.players) do
         if self.photos[clientId] then

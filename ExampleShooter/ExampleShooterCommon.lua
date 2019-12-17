@@ -21,7 +21,7 @@ CROSSHAIR_SIZE = 30
 
 -- Define
 
-function GameCommon:define()
+function Game.Common:define()
     -- Server sends full state to a new client when it connects
     self:defineMessageKind('fullState', {
         reliable = true,
@@ -119,7 +119,7 @@ end
 
 -- Start / stop
 
-function GameCommon:start()
+function Game.Common:start()
     self.players = {}
     self.mes = {}
     self.bullets = {}
@@ -131,25 +131,25 @@ end
 
 -- 'bump.lua' colliders -- 'bump.lua' uses top-left corner for position
 
-function GameCommon:addPlayerBump(player)
+function Game.Common:addPlayerBump(player)
     self.bumpWorld:add(
         player,
         player.x - 0.5 * PLAYER_SIZE, player.y - 0.5 * PLAYER_SIZE,
         PLAYER_SIZE, PLAYER_SIZE)
 end
 
-function GameCommon:addBulletBump(bullet)
+function Game.Common:addBulletBump(bullet)
     self.bumpWorld:add(
         bullet,
         bullet.x - BULLET_RADIUS, bullet.y - BULLET_RADIUS,
         2 * BULLET_RADIUS, 2 * BULLET_RADIUS)
 end
 
-function GameCommon:addWallBump(wall)
+function Game.Common:addWallBump(wall)
     self.bumpWorld:add(wall, wall.x, wall.y, wall.width, wall.height)
 end
 
-function GameCommon:walkPlayerTo(player, targetX, targetY) -- Move player with collision response
+function Game.Common:walkPlayerTo(player, targetX, targetY) -- Move player with collision response
     targetX = math.max(0.5 * PLAYER_SIZE, math.min(targetX, 800 - 0.5 * PLAYER_SIZE))
     targetY = math.max(0.5 * PLAYER_SIZE, math.min(targetY, 450 - 0.5 * PLAYER_SIZE))
     local bumpX, bumpY, cols = self.bumpWorld:move(
@@ -168,7 +168,7 @@ function GameCommon:walkPlayerTo(player, targetX, targetY) -- Move player with c
     player.x, player.y = bumpX + 0.5 * PLAYER_SIZE, bumpY + 0.5 * PLAYER_SIZE
 end
 
-function GameCommon:moveBullet(bullet, dt) -- Move bullet with collision response, returl collisions
+function Game.Common:moveBullet(bullet, dt) -- Move bullet with collision response, returl collisions
     local targetX, targetY = bullet.x + bullet.vx * dt, bullet.y + bullet.vy * dt
     local bumpX, bumpY, cols = self.bumpWorld:move(
         bullet,
@@ -195,11 +195,11 @@ end
 
 -- Receivers
 
-function GameCommon.receivers:me(time, clientId, me)
+function Game.Common.receivers:me(time, clientId, me)
     self.mes[clientId] = me
 end
 
-function GameCommon.receivers:addPlayer(time, clientId, x, y, r, g, b)
+function Game.Common.receivers:addPlayer(time, clientId, x, y, r, g, b)
     local player = {
         type = 'player',
         clientId = clientId,
@@ -228,7 +228,7 @@ function GameCommon.receivers:addPlayer(time, clientId, x, y, r, g, b)
     self:addPlayerBump(player)
 end
 
-function GameCommon.receivers:removePlayer(time, clientId)
+function Game.Common.receivers:removePlayer(time, clientId)
     local player = self.players[clientId]
     if player then
         self.bumpWorld:remove(player)
@@ -236,7 +236,7 @@ function GameCommon.receivers:removePlayer(time, clientId)
     end
 end
 
-function GameCommon.receivers:playerPositionVelocity(time, clientId, spawnCount, x, y, vx, vy)
+function Game.Common.receivers:playerPositionVelocity(time, clientId, spawnCount, x, y, vx, vy)
     local player = self.players[clientId]
     if player then
         assert(not player.own, 'received `playerPositionVelocity` for own player')
@@ -254,21 +254,21 @@ function GameCommon.receivers:playerPositionVelocity(time, clientId, spawnCount,
     end
 end
 
-function GameCommon.receivers:playerHealth(time, clientId, health)
+function Game.Common.receivers:playerHealth(time, clientId, health)
     local player = self.players[clientId]
     if player then
         player.health = health
     end
 end
 
-function GameCommon.receivers:playerScore(time, clientId, score)
+function Game.Common.receivers:playerScore(time, clientId, score)
     local player = self.players[clientId]
     if player then
         player.score = score
     end
 end
 
-function GameCommon.receivers:respawnPlayer(time, clientId, spawnCount, x, y)
+function Game.Common.receivers:respawnPlayer(time, clientId, spawnCount, x, y)
     local player = self.players[clientId]
     if player then
         player.spawnCount = spawnCount
@@ -289,7 +289,7 @@ function GameCommon.receivers:respawnPlayer(time, clientId, spawnCount, x, y)
     end
 end
 
-function GameCommon.receivers:addBullet(time, clientId, bulletId, x, y, vx, vy)
+function Game.Common.receivers:addBullet(time, clientId, bulletId, x, y, vx, vy)
     local dt = self.time - time
 
     local bullet = {
@@ -312,7 +312,7 @@ function GameCommon.receivers:addBullet(time, clientId, bulletId, x, y, vx, vy)
     self:addBulletBump(bullet)
 end
 
-function GameCommon.receivers:removeBullet(time, bulletId)
+function Game.Common.receivers:removeBullet(time, bulletId)
     local bullet = self.bullets[bulletId]
     if bullet then
         self.bumpWorld:remove(bullet)
@@ -325,7 +325,7 @@ end
 
 local PLAYER_SPEED = 200
 
-function GameCommon:update(dt)
+function Game.Common:update(dt)
     -- Interpolate players' positions based on history
     local interpTime = self.time - 0.15 -- Interpolated players are slightly in the past
     for clientId, player in pairs(self.players) do

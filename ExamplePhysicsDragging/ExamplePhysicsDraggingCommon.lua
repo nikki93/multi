@@ -1,4 +1,4 @@
-local Physics = require 'physics' -- You would use the full 'https://...' raw URI to 'physics.lua' here
+local Physics = require '../physics' -- You would use the full 'https://...' raw URI to 'physics.lua' here
 
 
 love.physics.setMeter(64)
@@ -10,7 +10,7 @@ TOUCHES_CHANNEL = 50
 
 -- Define
 
-function GameCommon:define()
+function Game.Common:define()
     --
     -- User
     --
@@ -63,7 +63,7 @@ end
 
 -- Start / stop
 
-function GameCommon:start()
+function Game.Common:start()
     self.mes = {}
 
     self.physics = Physics.new({ game = self })
@@ -74,14 +74,14 @@ end
 
 -- Mes
 
-function GameCommon.receivers:me(time, clientId, me)
+function Game.Common.receivers:me(time, clientId, me)
     self.mes[clientId] = me
 end
 
 
 -- Touches
 
-function GameCommon.receivers:beginTouch(time, clientId, touchId, x, y, bodyId, localX, localY)
+function Game.Common.receivers:beginTouch(time, clientId, touchId, x, y, bodyId, localX, localY)
     -- Create touch entry
     local touch = {
         ended = false,
@@ -111,7 +111,7 @@ function GameCommon.receivers:beginTouch(time, clientId, touchId, x, y, bodyId, 
     self.touches[touchId] = touch
 end
 
-function GameCommon.receivers:endTouch(time, touchId, x, y)
+function Game.Common.receivers:endTouch(time, touchId, x, y)
     local touch = self.touches[touchId]
     if touch then
         -- Add the final position
@@ -126,7 +126,7 @@ function GameCommon.receivers:endTouch(time, touchId, x, y)
     end
 end
 
-function GameCommon.receivers:touchPosition(time, touchId, x, y)
+function Game.Common.receivers:touchPosition(time, touchId, x, y)
     local touch = self.touches[touchId]
     if touch then
         table.insert(touch.positionHistory, {
@@ -140,7 +140,7 @@ end
 
 -- Update
 
-function GameCommon:update(dt)
+function Game.Common:update(dt)
     -- Interpolate touches and move associated mouse joints
     do
         local interpTime = self.time - 0.12

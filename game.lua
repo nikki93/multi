@@ -1,4 +1,4 @@
-Game = {}
+assert(Game, "`Game` needs to be defined by your game code before `require`ing 'server' or 'client'")
 
 
 NUM_CHANNELS = NUM_CHANNELS or 200
@@ -331,12 +331,12 @@ end
 -- Inheriters
 --
 
-GameCommon = setmetatable({}, { __index = Game })
+Game.Common = setmetatable({}, { __index = Game })
 
-GameServer = setmetatable({
-    receivers = setmetatable({}, { __index = GameCommon.receivers })
-}, { __index = GameCommon })
+Game.Server = setmetatable({
+    receivers = setmetatable({}, { __index = Game.Common.receivers })
+}, { __index = Game.Common })
 
-GameClient = setmetatable({
-    receivers = setmetatable({}, { __index = GameCommon.receivers })
-}, { __index = GameCommon })
+Game.Client = setmetatable({
+    receivers = setmetatable({}, { __index = Game.Common.receivers })
+}, { __index = Game.Common })

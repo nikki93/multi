@@ -1,6 +1,6 @@
 -- Define
 
-function GameCommon:define()
+function Game.Common:define()
     -- Server sends full state to a new client when it connects
     self:defineMessageKind('fullState', {
         reliable = true,
@@ -43,7 +43,7 @@ end
 
 -- Start / stop
 
-function GameCommon:start()
+function Game.Common:start()
     self.players = {}
     self.mes = {}
 end
@@ -51,11 +51,11 @@ end
 
 -- Receivers
 
-function GameCommon.receivers:me(time, clientId, me)
+function Game.Common.receivers:me(time, clientId, me)
     self.mes[clientId] = me
 end
 
-function GameCommon.receivers:addPlayer(time, clientId, x, y)
+function Game.Common.receivers:addPlayer(time, clientId, x, y)
     local player = {
         clientId = clientId,
         x = x,
@@ -75,11 +75,11 @@ function GameCommon.receivers:addPlayer(time, clientId, x, y)
     self.players[clientId] = player
 end
 
-function GameCommon.receivers:removePlayer(time, clientId)
+function Game.Common.receivers:removePlayer(time, clientId)
     self.players[clientId] = nil
 end
 
-function GameCommon.receivers:playerPositionVelocity(time, clientId, x, y, vx, vy)
+function Game.Common.receivers:playerPositionVelocity(time, clientId, x, y, vx, vy)
     local player = self.players[clientId]
     if player then
         assert(not player.own, 'received `playerPositionVelocity` for own player')
@@ -98,7 +98,7 @@ end
 
 local PLAYER_SPEED = 200
 
-function GameCommon:update(dt)
+function Game.Common:update(dt)
     -- Interpolate players' positions based on history
     local interpTime = self.time - 0.2 -- Interpolated players are slightly in the past
     for clientId, player in pairs(self.players) do

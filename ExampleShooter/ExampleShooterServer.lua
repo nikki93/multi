@@ -1,4 +1,5 @@
-require 'server' -- You would use the full 'https://...' raw URI to 'server.lua' here
+Game = Game or {}
+require('../server', { root = true }) -- You would use the full 'https://...' raw URI to 'server.lua' here
 
 
 require 'ExampleShooterCommon'
@@ -10,7 +11,7 @@ local function roundTo(value, multiple)
     return math.floor(value / multiple + 0.5) * multiple
 end
 
-function GameServer:generatePlayerPosition() -- Generate player position not overlapping anything
+function Game.Server:generatePlayerPosition() -- Generate player position not overlapping anything
     local x, y
     while true do
         x, y = math.random(40, 800 - 40), math.random(40, 450 - 40)
@@ -27,7 +28,7 @@ end
 
 -- Start / stop
 
-function GameServer:addWall(x, y, width, height)
+function Game.Server:addWall(x, y, width, height)
     local wallId = self:generateId()
 
     local wall = {
@@ -43,8 +44,8 @@ function GameServer:addWall(x, y, width, height)
     self:addWallBump(wall)
 end
 
-function GameServer:start()
-    GameCommon.start(self)
+function Game.Server:start()
+    Game.Common.start(self)
 
     self.walls = {}
 
@@ -93,7 +94,7 @@ end
 
 -- Connect / disconnect
 
-function GameServer:connect(clientId)
+function Game.Server:connect(clientId)
     -- Send full state to new client
     self:send({
         to = clientId,
@@ -120,7 +121,7 @@ function GameServer:connect(clientId)
     self:send({ kind = 'addPlayer' }, clientId, x, y, r, g, b)
 end
 
-function GameServer:disconnect(clientId)
+function Game.Server:disconnect(clientId)
     -- Remove player for old client
     self:send({ kind = 'removePlayer' }, clientId)
 end
@@ -128,7 +129,7 @@ end
 
 -- Receivers
 
-function GameServer.receivers:shoot(time, clientId, x, y, targetX, targetY)
+function Game.Server.receivers:shoot(time, clientId, x, y, targetX, targetY)
     local player = self.players[clientId]
     if not player then
         return
@@ -152,9 +153,9 @@ end
 
 -- Update
 
-function GameServer:update(dt)
+function Game.Server:update(dt)
     -- Do common update
-    GameCommon.update(self, dt)
+    Game.Common.update(self, dt)
 
     -- Bullet lifetime
     for bulletId, bullet in pairs(self.bullets) do

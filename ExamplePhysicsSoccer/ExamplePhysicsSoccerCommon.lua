@@ -1,4 +1,4 @@
-local Physics = require 'physics' -- You would use the full 'https://...' raw URI to 'physics.lua' here
+local Physics = require '../physics' -- You would use the full 'https://...' raw URI to 'physics.lua' here
 
 
 love.physics.setMeter(64)
@@ -10,7 +10,7 @@ TOUCHES_CHANNEL = 50
 
 -- Define
 
-function GameCommon:define()
+function Game.Common:define()
     --
     -- User
     --
@@ -45,7 +45,7 @@ end
 
 -- Start / stop
 
-function GameCommon:start()
+function Game.Common:start()
     self.mes = {}
 
     self.physics = Physics.new({
@@ -65,14 +65,14 @@ end
 
 -- Mes
 
-function GameCommon.receivers:me(time, clientId, me)
+function Game.Common.receivers:me(time, clientId, me)
     self.mes[clientId] = me
 end
 
 
 -- Players
 
-function GameCommon.receivers:addPlayer(time, clientId, bodyId)
+function Game.Common.receivers:addPlayer(time, clientId, bodyId)
     local player = {
         clientId = clientId,
         bodyId = bodyId,
@@ -81,14 +81,14 @@ function GameCommon.receivers:addPlayer(time, clientId, bodyId)
     self.players[clientId] = player
 end
 
-function GameCommon.receivers:removePlayer(time, clientId)
+function Game.Common.receivers:removePlayer(time, clientId)
     self.players[clientId] = nil
 end
 
 
 -- Update
 
-function GameCommon:update(dt)
+function Game.Common:update(dt)
     -- Update physics
     local worldId, world = self.physics:getWorld()
     if worldId then

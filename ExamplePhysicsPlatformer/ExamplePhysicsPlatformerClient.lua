@@ -1,4 +1,5 @@
-require 'client' -- You would use the full 'https://...' raw URI to 'client.lua' here
+Game = Game or {}
+require('../client', { root = true }) -- You would use the full 'https://...' raw URI to 'client.lua' here
 
 
 require 'ExamplePhysicsPlatformerCommon'
@@ -6,8 +7,8 @@ require 'ExamplePhysicsPlatformerCommon'
 
 -- Start / stop
 
-function GameClient:start()
-    GameCommon.start(self)
+function Game.Client:start()
+    Game.Common.start(self)
 
     self.photoImages = {}
 end
@@ -15,8 +16,8 @@ end
 
 -- Connect / disconnect
 
-function GameClient:connect()
-    GameCommon.connect(self)
+function Game.Client:connect()
+    Game.Common.connect(self)
 
     self.connectTime = love.timer.getTime()
 
@@ -28,8 +29,8 @@ end
 
 -- Mes
 
-function GameClient.receivers:me(time, clientId, me)
-    GameCommon.receivers.me(self, time, clientId, me)
+function Game.Client.receivers:me(time, clientId, me)
+    Game.Common.receivers.me(self, time, clientId, me)
 
     local photoUrl = self.mes[clientId].photoUrl
     if photoUrl then
@@ -42,7 +43,7 @@ end
 
 -- Update
 
-function GameClient:update(dt)
+function Game.Client:update(dt)
     -- Not connected?
     if not self.connected then
         return
@@ -99,7 +100,7 @@ function GameClient:update(dt)
     end
 
     -- Common update
-    GameCommon.update(self, dt)
+    Game.Common.update(self, dt)
 
     -- Send physics syncs
     local worldId, world = self.physics:getWorld()
@@ -111,7 +112,7 @@ end
 
 -- Keyboard
 
-function GameClient:keypressed(key)
+function Game.Client:keypressed(key)
     if key == 'up' or key == 'return' then
         self.jumpRequestTime = love.timer.getTime()
     end
@@ -120,7 +121,7 @@ end
 
 -- Draw
 
-function GameClient:draw()
+function Game.Client:draw()
     do -- Physics bodies
         local worldId, world = self.physics:getWorld()
         if world then

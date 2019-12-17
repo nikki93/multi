@@ -1,4 +1,5 @@
-require 'client' -- You would use the full 'https://...' raw URI to 'client.lua' here
+Game = Game or {}
+require('../client', { root = true }) -- You would use the full 'https://...' raw URI to 'client.lua' here
 
 
 require 'ExampleShooterCommon'
@@ -6,8 +7,8 @@ require 'ExampleShooterCommon'
 
 -- Start / stop
 
-function GameClient:start()
-    GameCommon.start(self)
+function Game.Client:start()
+    Game.Common.start(self)
 
     -- Client-local data
 
@@ -27,7 +28,7 @@ end
 
 -- Utils
 
-function GameClient:loadPhotoImage(clientId)
+function Game.Client:loadPhotoImage(clientId)
     local photoUrl = self.mes[clientId].photoUrl
     if photoUrl then
         network.async(function()
@@ -39,8 +40,8 @@ end
 
 -- Connect / disconnect
 
-function GameClient:connect()
-    GameCommon.connect(self)
+function Game.Client:connect()
+    Game.Common.connect(self)
 
     -- Send `me`
     local me = castle.user.getMe()
@@ -50,14 +51,14 @@ end
 
 -- Receivers
 
-function GameClient.receivers:me(time, clientId, me)
-    GameCommon.receivers.me(self, time, clientId, me)
+function Game.Client.receivers:me(time, clientId, me)
+    Game.Common.receivers.me(self, time, clientId, me)
 
     -- When we get a `me`, load the photo
     self:loadPhotoImage(clientId)
 end
 
-function GameClient.receivers:fullState(time, state)
+function Game.Client.receivers:fullState(time, state)
     -- Read players
     self.players = state.players
     for playerId, player in pairs(self.players) do
@@ -83,7 +84,7 @@ function GameClient.receivers:fullState(time, state)
     end
 end
 
-function GameClient.receivers:bulletPositionVelocity(time, bulletId, x, y, vx, vy)
+function Game.Client.receivers:bulletPositionVelocity(time, bulletId, x, y, vx, vy)
     local bullet = self.bullets[bulletId]
     if bullet then
         bullet.x, bullet.y, bullet.vx, bullet.vy = x, y, vx, vy
@@ -95,7 +96,7 @@ end
 
 -- Update
 
-function GameClient:update(dt)
+function Game.Client:update(dt)
     -- Not connected?
     if not self.connected then
         return
@@ -145,7 +146,7 @@ function GameClient:update(dt)
     end
 
     -- Do common update
-    GameCommon.update(self, dt)
+    Game.Common.update(self, dt)
 
     -- Send own player position
     if ownPlayer then
@@ -158,7 +159,7 @@ end
 
 -- Keyboard
 
-function GameClient:keypressed(key)
+function Game.Client:keypressed(key)
     if key == 'return' then
         self.showDebugInfo = not self.showDebugInfo
     end
@@ -185,7 +186,7 @@ end
 
 local visibilityCanvas = love.graphics.newCanvas()
 
-function GameClient:draw()
+function Game.Client:draw()
     -- Not connected?
     if not self.connected then
         return

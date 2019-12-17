@@ -14,7 +14,7 @@ else
 end
 
 
-local game = GameServer:_new()
+local game = Game.Server:_new()
 
 
 function server.load()

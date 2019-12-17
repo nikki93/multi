@@ -1,4 +1,5 @@
-require 'server' -- You would use the full 'https://...' raw URI to 'server.lua' here
+Game = Game or {}
+require('../server', { root = true }) -- You would use the full 'https://...' raw URI to 'server.lua' here
 
 
 require 'ExamplePhysicsSoccerCommon'
@@ -6,8 +7,8 @@ require 'ExamplePhysicsSoccerCommon'
 
 -- Start / stop
 
-function GameServer:start()
-    GameCommon.start(self)
+function Game.Server:start()
+    Game.Common.start(self)
 
 
     local worldId = self.physics:newWorld(0, 0, true)
@@ -70,7 +71,7 @@ end
 
 -- Connect / disconnect
 
-function GameServer:connect(clientId)
+function Game.Server:connect(clientId)
     local function send(kind, ...) -- Shorthand to send messages to this client only
         self:send({
             kind = kind,
@@ -108,15 +109,15 @@ function GameServer:connect(clientId)
     self:send({ kind = 'addPlayer' }, clientId, bodyId)
 end
 
-function GameServer:disconnect(clientId)
+function Game.Server:disconnect(clientId)
 end
 
 
 -- Update
 
-function GameServer:update(dt)
+function Game.Server:update(dt)
     -- Common update
-    GameCommon.update(self, dt)
+    Game.Common.update(self, dt)
 
     -- Check scoring
     local ballBody = self.physics:objectForId(self.ballBodyId)

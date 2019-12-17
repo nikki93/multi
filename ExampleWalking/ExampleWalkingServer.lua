@@ -1,4 +1,5 @@
-require 'server' -- You would use the full 'https://...' raw URI to 'server.lua' here
+Game = Game or {}
+require('../server', { root = true }) -- You would use the full 'https://...' raw URI to 'server.lua' here
 
 
 require 'ExampleWalkingCommon'
@@ -6,7 +7,7 @@ require 'ExampleWalkingCommon'
 
 -- Connect / disconnect
 
-function GameServer:connect(clientId)
+function Game.Server:connect(clientId)
     -- Send full state to new client
     self:send({
         to = clientId,
@@ -21,7 +22,7 @@ function GameServer:connect(clientId)
     self:send({ kind = 'addPlayer' }, clientId, x, y)
 end
 
-function GameServer:disconnect(clientId)
+function Game.Server:disconnect(clientId)
     -- Remove player for old client
     self:send({ kind = 'removePlayer' }, clientId)
 end

@@ -1,4 +1,5 @@
-require 'client' -- You would use the full 'https://...' raw URI to 'client.lua' here
+Game = Game or {}
+require('../client', { root = true }) -- You would use the full 'https://...' raw URI to 'client.lua' here
 
 
 require 'ExamplePhysicsDraggingCommon'
@@ -6,8 +7,8 @@ require 'ExamplePhysicsDraggingCommon'
 
 -- Start / stop
 
-function GameClient:start()
-    GameCommon.start(self)
+function Game.Client:start()
+    Game.Common.start(self)
 
     self.photoImages = {}
 
@@ -18,8 +19,8 @@ end
 
 -- Connect / disconnect
 
-function GameClient:connect()
-    GameCommon.connect(self)
+function Game.Client:connect()
+    Game.Common.connect(self)
 
     self.connectTime = love.timer.getTime()
 
@@ -31,8 +32,8 @@ end
 
 -- Mes
 
-function GameClient.receivers:me(time, clientId, me)
-    GameCommon.receivers.me(self, time, clientId, me)
+function Game.Client.receivers:me(time, clientId, me)
+    Game.Common.receivers.me(self, time, clientId, me)
 
     local photoUrl = self.mes[clientId].photoUrl
     if photoUrl then
@@ -45,14 +46,14 @@ end
 
 -- Update
 
-function GameClient:update(dt)
+function Game.Client:update(dt)
     -- Not connected?
     if not self.connected then
         return
     end
 
     -- Common update
-    GameCommon.update(self, dt)
+    Game.Common.update(self, dt)
 
     -- Send touch updates
     for loveTouchId, touchId in pairs(self.localTouches) do
@@ -75,7 +76,7 @@ end
 
 -- Mouse / touch
 
-function GameClient:mousepressed(x, y, button, isTouch)
+function Game.Client:mousepressed(x, y, button, isTouch)
     if isTouch then -- Handle through `:touchpressed`
         return
     end
@@ -85,7 +86,7 @@ function GameClient:mousepressed(x, y, button, isTouch)
     end
 end
 
-function GameClient:mousereleased(x, y, button, isTouch)
+function Game.Client:mousereleased(x, y, button, isTouch)
     if isTouch then -- Handle through `:touchreleased`
         return
     end
@@ -95,7 +96,7 @@ function GameClient:mousereleased(x, y, button, isTouch)
     end
 end
 
-function GameClient:touchpressed(loveTouchId, x, y)
+function Game.Client:touchpressed(loveTouchId, x, y)
     local worldId, world = self.physics:getWorld()
     if world then
         -- Find body under touch
@@ -139,7 +140,7 @@ function GameClient:touchpressed(loveTouchId, x, y)
     end
 end
 
-function GameClient:touchreleased(loveTouchId, x, y)
+function Game.Client:touchreleased(loveTouchId, x, y)
     local touchId = self.localTouches[loveTouchId]
     if touchId then
         self:send({ kind = 'endTouch' }, touchId, x, y)
@@ -150,7 +151,7 @@ end
 
 -- Draw
 
-function GameClient:draw()
+function Game.Client:draw()
     local worldId, world = self.physics:getWorld()
     if world then
         local touchLines = {}

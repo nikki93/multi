@@ -14,7 +14,7 @@ else
 end
 
 
-local game = GameClient:_new()
+local game = Game.Client:_new()
 
 
 function client.load()
