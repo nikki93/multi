@@ -1,4 +1,4 @@
-Game = Game = require('../client', { root = true }) -- You would use the full 'https://...' raw URI to 'client.lua' here
+Game = require('../client', { root = true }) -- You would use the full 'https://...' raw URI to 'client.lua' here
 
 
 require 'ExamplePhysicsPlatformerCommon'
