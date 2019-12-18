@@ -1,5 +1,4 @@
-Game = Game or {}
-require('../server', { root = true }) -- You would use the full 'https://...' raw URI to 'server.lua' here
+Game = require('../server', { root = true }) -- You would use the full 'https://...' raw URI to 'server.lua' here
 
 
 require 'ExamplePhysicsSoccerCommon'

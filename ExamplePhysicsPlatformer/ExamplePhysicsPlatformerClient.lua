@@ -1,5 +1,4 @@
-Game = Game or {}
-require('../client', { root = true }) -- You would use the full 'https://...' raw URI to 'client.lua' here
+Game = Game = require('../client', { root = true }) -- You would use the full 'https://...' raw URI to 'client.lua' here
 
 
 require 'ExamplePhysicsPlatformerCommon'
@@ -62,6 +61,7 @@ function Game.Client:update(dt)
             local MAX_VELOCITY, ACCELERATION = 280, 3200
 
             local vx, vy = ownPlayerBody:getLinearVelocity()
+            local newVx = vx
             if vx < MAX_VELOCITY and right then
                 newVx = math.min(MAX_VELOCITY, vx + ACCELERATION * dt)
             end
