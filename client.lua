@@ -1,10 +1,10 @@
 local clientServer = require 'cs'
 
-require 'game'
+local Game = require 'game'
 
 
 local client = clientServer.client
-client.numChannels = NUM_CHANNELS
+client.numChannels = NUM_CHANNELS or 200
 
 if USE_LOCAL_SERVER then
     client.enabled = true
@@ -105,3 +105,6 @@ for loveCallback in pairs(loveCallbacks) do
         end
     end
 end
+
+
+return Game

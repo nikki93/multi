@@ -1,10 +1,10 @@
 local clientServer = require 'cs'
 
-require 'game'
+local Game = require 'game'
 
 
 local server = clientServer.server
-server.numChannels = NUM_CHANNELS
+server.numChannels = NUM_CHANNELS or 200
 
 if USE_LOCAL_SERVER then
     server.enabled = true
@@ -57,3 +57,6 @@ function server.update(dt)
 
     game:_update(dt)
 end
+
+
+return Game

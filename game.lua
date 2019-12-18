@@ -1,7 +1,4 @@
-assert(Game, "`Game` needs to be defined by your game code before `require`ing 'server' or 'client'")
-
-
-NUM_CHANNELS = NUM_CHANNELS or 200
+local Game = {}
 
 
 local PriorityQueue = require 'https://raw.githubusercontent.com/Roblox/Wiki-Lua-Libraries/776a48bd1562c7df557a92e3ade6544efa5b031b/StandardLibraries/PriorityQueue.lua'
@@ -170,7 +167,7 @@ function Game:send(opts, ...)
     if shouldSend then
         local channel = opts.channel or defaults.channel
         assert(type(channel) == 'number', 'send: `channel` needs to be a number')
-        assert(0 <= channel and channel < NUM_CHANNELS, 'send: `channel` out of range')
+        assert(0 <= channel and channel < (NUM_CHANNELS or 200), 'send: `channel` out of range')
 
         local flag = reliable and 'reliable' or 'unreliable'
 
@@ -340,3 +337,6 @@ Game.Server = setmetatable({
 Game.Client = setmetatable({
     receivers = setmetatable({}, { __index = Game.Common.receivers })
 }, { __index = Game.Common })
+
+
+return Game
