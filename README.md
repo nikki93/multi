@@ -31,9 +31,9 @@ This example uses the 'physics.lua' module to provide a synchronized physics sce
 
 You must have separate client and server modules that you specify as `main: ` and `serverMain: ` in your project's '.castle' file ([the `serverMain: ` key appears under the `multiplayer: ` key](https://castle.games/documentation/reference/castle-project-file-reference)).
 
-Each module should start with `Game = Game or {}` to define (but not re-define) the `Game` global that the library will populate. The client module must `require` the 'client.lua' file in this repository, while the server module must `require` the 'server.lua' file. You can `require` them using direct 'https://...' URIs as is possible in Castle.
+The client module must `require` the 'client.lua' file in this repository, while the server module must `require` the 'server.lua' file. You can `require` them using direct 'https://...' URIs as is possible in Castle. These `require`s return a `Game` table.
 
-You then implement methods in `Game.Common`, `Game.Client` and `Game.Server` to define your game. The methods you implement are listed under the 'Methods you implement' heading below. In any implemented method, `Game.Client` or `Game.Server` can call the `Game.Common` version using `Game.Common.<methodName>(self, ...)`, passing along all of the arguments that it received (it is free to pass in different arguments too).
+You then implement methods in `Game.Common`, `Game.Client` and `Game.Server` to define your game. The methods you implement are listed under the 'Methods you implement' heading below. In any implemented method, `Game.Client` or `Game.Server` can call the `Game.Common` version using `Game.Common.<methodName>(self, ...)`, passing along all of the arguments that it received (it is free to pass in different arguments too). If `Game.Client` or `Game.Server` do not implement a particular method, it is looked up in `Game.Common`.
 
 In your methods, you can call methods on `self` that are pre-defined by the library. These are listed under the 'Methods you call' heading below.
 
