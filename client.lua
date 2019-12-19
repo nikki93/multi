@@ -2,6 +2,8 @@ local clientServer = require 'cs'
 
 local Game = require 'game'
 
+local print = PRINT_OVERRIDE or print
+
 
 local client = clientServer.client
 client.numChannels = NUM_CHANNELS or 200

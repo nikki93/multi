@@ -3,6 +3,9 @@ local serpent = require 'https://raw.githubusercontent.com/pkulchenko/serpent/52
 local bitser = require 'https://raw.githubusercontent.com/gvx/bitser/214ad35f62d5abbc0c9a421287aa0964f6f63003/bitser.lua'
 
 
+local print = PRINT_OVERRIDE or print
+
+
 local encode = bitser.dumps
 local decode = bitser.loads
 
