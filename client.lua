@@ -10,7 +10,7 @@ client.numChannels = NUM_CHANNELS or 200
 
 if USE_LOCAL_SERVER then
     client.enabled = true
-    client.start('127.0.0.1:22122')
+    client.start((LOCAL_SERVER_ADDRESS or '127.0.0.1') .. ':22122')
 else
     client.useCastleConfig()
 end
