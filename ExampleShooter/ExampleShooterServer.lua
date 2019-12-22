@@ -117,12 +117,12 @@ function Game.Server:connect(clientId)
     end
 
     local x, y = self:generatePlayerPosition()
-    self:send({ kind = 'addPlayer' }, clientId, x, y, r, g, b)
+    self:send('addPlayer', clientId, x, y, r, g, b)
 end
 
 function Game.Server:disconnect(clientId)
     -- Remove player for old client
-    self:send({ kind = 'removePlayer' }, clientId)
+    self:send('removePlayer', clientId)
 end
 
 
@@ -146,7 +146,7 @@ function Game.Server.receivers:shoot(time, clientId, x, y, targetX, targetY)
     dirX, dirY = dirX / dirLen, dirY / dirLen
     local vx, vy = BULLET_SPEED * dirX, BULLET_SPEED * dirY
 
-    self:send({ kind = 'addBullet' }, clientId, bulletId, x, y, vx, vy)
+    self:send('addBullet', clientId, bulletId, x, y, vx, vy)
 end
 
 
@@ -160,7 +160,7 @@ function Game.Server:update(dt)
     for bulletId, bullet in pairs(self.bullets) do
         bullet.timeLeft = bullet.timeLeft - dt
         if bullet.timeLeft <= 0 then
-            self:send({ kind = 'removeBullet' }, bulletId)
+            self:send('removeBullet', bulletId)
         end
     end
 
@@ -173,32 +173,32 @@ function Game.Server:update(dt)
             if other.type == 'wall' then
                 bullet.bouncesLeft = bullet.bouncesLeft - 1
                 if bullet.bouncesLeft <= 0 then
-                    self:send({ kind = 'removeBullet' }, bulletId)
+                    self:send('removeBullet', bulletId)
                 end
             elseif other.type == 'player' and other.clientId ~= bullet.clientId then
                 other.health = other.health - BULLET_DAMAGE
                 if other.health > 0 then
                     -- Reduce health of other player
-                    self:send({ kind = 'playerHealth' }, other.clientId, other.health)
+                    self:send('playerHealth', other.clientId, other.health)
                 else
                     -- Respawn other player
                     local newX, newY = self:generatePlayerPosition()
-                    self:send({ kind = 'respawnPlayer' }, other.clientId, other.spawnCount + 1, newX, newY)
+                    self:send('respawnPlayer', other.clientId, other.spawnCount + 1, newX, newY)
 
                     -- Award shooter
                     local shooter = self.players[bullet.clientId]
                     if shooter then
-                        self:send({ kind = 'playerScore' }, shooter.clientId, shooter.score + 1)
+                        self:send('playerScore', shooter.clientId, shooter.score + 1)
                     end
                 end
 
-                self:send({ kind = 'removeBullet' }, bulletId)
+                self:send('removeBullet', bulletId)
             end
         end
     end
 
     -- Send bullet positions
     for bulletId, bullet in pairs(self.bullets) do
-        self:send({ kind = 'bulletPositionVelocity' }, bulletId, bullet.x, bullet.y, bullet.vx, bullet.vy)
+        self:send('bulletPositionVelocity', bulletId, bullet.x, bullet.y, bullet.vx, bullet.vy)
     end
 end

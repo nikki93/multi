@@ -133,6 +133,10 @@ function Game:defineMessageKind(kind, defaults)
 end
 
 function Game:send(opts, ...)
+    if type(opts) == 'string' then -- Shorthand
+        opts = { kind = opts }
+    end
+
     local time = opts.time or self.time
 
     local kind = opts.kind
@@ -252,7 +256,7 @@ function Game:_update(dt)
     -- Let time pass
     if self.server then
         self.time = love.timer.getTime() - self._startTime
-        self:send({ kind = '_ping' }, self.time)
+        self:send('_ping', self.time)
     end
     if self.client and self._timeDelta then
         self.time = love.timer.getTime() + self._timeDelta

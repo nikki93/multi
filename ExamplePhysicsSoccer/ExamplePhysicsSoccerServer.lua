@@ -105,7 +105,7 @@ function Game.Server:connect(clientId)
     self.physics:setLinearDamping(bodyId, 2.8)
     self.physics:setFixedRotation(bodyId, true)
     self.physics:setOwner(bodyId, clientId, true)
-    self:send({ kind = 'addPlayer' }, clientId, bodyId)
+    self:send('addPlayer', clientId, bodyId)
 end
 
 function Game.Server:disconnect(clientId)

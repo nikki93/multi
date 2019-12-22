@@ -22,7 +22,7 @@ function Game.Client:connect()
 
     -- Send `me`
     local me = castle.user.getMe()
-    self:send({ kind = 'me' }, self.clientId, me)
+    self:send('me', self.clientId, me)
 end
 
 

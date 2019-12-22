@@ -18,10 +18,10 @@ function Game.Server:connect(clientId)
 
     -- Add player for new client
     local x, y = math.random(40, 800 - 40), math.random(40, 450 - 40)
-    self:send({ kind = 'addPlayer' }, clientId, x, y)
+    self:send('addPlayer', clientId, x, y)
 end
 
 function Game.Server:disconnect(clientId)
     -- Remove player for old client
-    self:send({ kind = 'removePlayer' }, clientId)
+    self:send('removePlayer', clientId)
 end

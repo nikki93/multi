@@ -44,7 +44,7 @@ function Game.Client:connect()
 
     -- Send `me`
     local me = castle.user.getMe()
-    self:send({ kind = 'me' }, self.clientId, me)
+    self:send('me', self.clientId, me)
 end
 
 
@@ -135,7 +135,7 @@ function Game.Client:update(dt)
 
             local mouseX, mouseY = love.mouse.getPosition()
 
-            self:send({ kind = 'shoot' }, self.clientId, ownPlayer.x, ownPlayer.y, mouseX,  mouseY)
+            self:send('shoot', self.clientId, ownPlayer.x, ownPlayer.y, mouseX,  mouseY)
         end
     end
 

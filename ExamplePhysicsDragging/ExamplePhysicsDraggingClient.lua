@@ -25,7 +25,7 @@ function Game.Client:connect()
 
     -- Send `me`
     local me = castle.user.getMe()
-    self:send({ kind = 'me' }, self.clientId, me)
+    self:send('me', self.clientId, me)
 end
 
 
@@ -62,7 +62,7 @@ function Game.Client:update(dt)
         else
             x, y = love.touch.getPosition(loveTouchId)
         end
-        self:send({ kind = 'touchPosition' }, touchId, x, y)
+        self:send('touchPosition', touchId, x, y)
     end
 
     -- Send physics syncs
@@ -132,7 +132,7 @@ function Game.Client:touchpressed(loveTouchId, x, y)
             local localX, localY = body:getLocalPoint(x, y)
             local touchId = self:generateId()
 
-            self:send({ kind = 'beginTouch' }, self.clientId, touchId, x, y, bodyId, localX, localY)
+            self:send('beginTouch', self.clientId, touchId, x, y, bodyId, localX, localY)
 
             self.localTouches[loveTouchId] = touchId
         end
@@ -142,7 +142,7 @@ end
 function Game.Client:touchreleased(loveTouchId, x, y)
     local touchId = self.localTouches[loveTouchId]
     if touchId then
-        self:send({ kind = 'endTouch' }, touchId, x, y)
+        self:send('endTouch', touchId, x, y)
         self.localTouches[loveTouchId] = nil
     end
 end
