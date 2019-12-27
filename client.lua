@@ -36,6 +36,12 @@ function client.connect()
     game:_connect()
 end
 
+function client.reconnect()
+    print('client: reconnected to server')
+
+    game:_connect(nil, true)
+end
+
 function client.disconnect()
     print('client: disconnected from server')
 
@@ -105,6 +111,12 @@ for loveCallback in pairs(loveCallbacks) do
         if game[loveCallback] then
             game[loveCallback](game, ...)
         end
+    end
+end
+
+function client.uiupdate(...)
+    if game.uiupdate then
+        game:uiupdate(...)
     end
 end
 

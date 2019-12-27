@@ -35,7 +35,13 @@ local needsConnect = {}
 function server.connect(clientId)
     print('server: client ' .. clientId .. ' connected')
 
-    table.insert(needsConnect, clientId)
+    table.insert(needsConnect, { clientId = clientId, isReconnect = false })
+end
+
+function server.reconnect(clientId)
+    print('server: client ' .. clientId .. ' reconnected')
+
+    table.insert(needsConnect, { clientId = clientId, isReconnect = true })
 end
 
 function server.disconnect(clientId)
@@ -52,9 +58,9 @@ end
 
 function server.update(dt)
     for i = #needsConnect, 1, -1 do
-        local clientId = needsConnect[i]
+        local entry = needsConnect[i]
         table.remove(needsConnect, i)
-        game:_connect(clientId)
+        game:_connect(entry.clientId, entry.isReconnect)
     end
 
     game:_update(dt)

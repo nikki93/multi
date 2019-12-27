@@ -71,14 +71,18 @@ function Game:_init(opts)
     self:start()
 end
 
-function Game:_connect(clientId)
+function Game:_connect(clientId, isReconnect)
     if self.server then
         self._clientIds[clientId] = true
         self:send({
             to = clientId,
             kind = '_initial',
         }, self.time)
-        self:connect(clientId)
+        if isReconnect then
+            self:reconnect(clientId)
+        else
+            self:connect(clientId)
+        end
     end
 
     -- Client will call `:connect` in `_initial` receiver
@@ -93,8 +97,12 @@ function Game.receivers:_initial(_, time)
 
     -- Ready to call `:connect`
     self.connected = true
-    self.clientId = self.client.id
-    self:connect()
+    if self.clientId then -- Is it a reconnect?
+        self:reconnect()
+    else -- First connect!
+        self.clientId = self.client.id
+        self:connect()
+    end
 end
 
 function Game.receivers:_ping(_, time)
@@ -110,6 +118,8 @@ function Game:_disconnect(clientId)
     end
     if self.client then
         self.connected = false
+        self.time = nil
+        self._timeDelta = nil
     end
 end
 
@@ -285,6 +295,31 @@ function Game:_update(dt)
 end
 
 
+--
+-- Connection management
+--
+
+function Game:kick(id)
+    if self.server then
+        self.server.kick(id)
+    end
+    if self.client then
+        self.client.kick()
+    end
+end
+
+function Game:retry()
+    assert(self.client, 'only clients can retry')
+    if self.client then
+        self.client.retry()
+    end
+end
+
+
+--
+-- Utilities
+--
+
 function Game:generateId()
     assert(self.server or self.connected, "generateId: need to be connected")
 
@@ -316,6 +351,9 @@ function Game:stop()
 end
 
 function Game:connect()
+end
+
+function Game:reconnect()
 end
 
 function Game:disconnect()

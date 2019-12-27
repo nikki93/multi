@@ -97,8 +97,13 @@ do
                 -- Someone connected?
                 if event.type == 'connect' then
                     if numClients < server.maxClients then
-                        local id = nextId
-                        nextId = nextId + 1
+                        local id
+                        if event.data ~= 0 then -- It's a reconnect
+                            id = event.data
+                        else -- New connect, generate an id
+                            id = nextId
+                            nextId = nextId + 1
+                        end
                         peerToId[event.peer] = id
                         idToPeer[id] = event.peer
                         numClients = numClients + 1
@@ -106,8 +111,14 @@ do
                             castle.setIsAcceptingClients(server.isAcceptingClients and
                                     numClients < server.maxClients)
                         end
-                        if server.connect then
-                            server.connect(id)
+                        if event.data ~= 0 then
+                            if server.reconnect then
+                                server.reconnect(id)
+                            end
+                        else
+                            if server.connect then
+                                server.connect(id)
+                            end
                         end
                         event.peer:send(encode({
                             id = id,
@@ -190,6 +201,7 @@ do
     client.numChannels = 1
 
     client.connected = false
+    client.address = nil
     client.id = nil
     client.backgrounded = false
 
@@ -211,12 +223,18 @@ do
         useCompression = false
     end
 
-    function client.start(address)
+    function client.start(address, retryClientId)
         host = enet.host_create(nil, 1, client.numChannels)
         if useCompression then
             host:compress_with_range_coder()
         end
-        host:connect(address or '127.0.0.1:22122', client.numChannels)
+        client.address = address or '127.0.0.1:22122'
+        host:connect(client.address, client.numChannels, retryClientId or 0)
+    end
+
+    function client.retry()
+        assert(not client.connected, "client isn't currently disconnected")
+        client.start(client.address, assert(client.id, "client wasn't previously connected"))
     end
 
     function client.sendExt(channel, flag, ...)
@@ -264,7 +282,7 @@ do
                         client.disconnect()
                     end
                     client.connected = false
-                    client.id = nil
+                    --client.id = nil -- NOTE: We're keeping `client.id` for retries
                     host = nil
                     peer = nil
                 end
@@ -282,9 +300,16 @@ do
                     if request.id then
                         peer = event.peer
                         client.connected = true
-                        client.id = request.id
-                        if client.connect then
-                            client.connect()
+                        if client.id then
+                            assert(client.id == request.id, 'reconnected with a different `id`')
+                            if client.reconnect then
+                                client.reconnect()
+                            end
+                        else
+                            client.id = request.id
+                            if client.connect then
+                                client.connect()
+                            end
                         end
 
                         -- Send sessionToken now that we have an id
