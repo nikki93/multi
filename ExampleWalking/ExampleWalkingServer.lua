@@ -64,7 +64,7 @@ end
 function Game.Server:update(dt)
     -- Remove players that have stayed disconnected for too long
     for clientId, player in pairs(self.players) do
-        if self.disconnectTimes[clientId] and self.time - self.disconnectTimes[clientId] > 30 then
+        if self.disconnectTimes[clientId] and self.time - self.disconnectTimes[clientId] > 60 then
             self:send('removePlayer', clientId)
         end
     end

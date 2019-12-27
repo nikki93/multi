@@ -145,7 +145,7 @@ local ui = castle.ui
 
 function Game.Client:uiupdate()
     if self.connected then
-        ui.markdown("You are connected! Click 'kick' to disconnect yourself. You can then try reconnecting within 30 seconds.")
+        ui.markdown("You are connected! Click 'kick' to disconnect yourself. You can then try reconnecting within 60 seconds.")
         if ui.button('kick') then
             self:kick()
         end
