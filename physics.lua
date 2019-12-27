@@ -48,11 +48,11 @@ function Physics:_defineMethod(methodName, opts)
     local kind = self.kindPrefix .. methodName
 
     -- Kind definition
-    self.game:defineMessageKind(kind, opts.defaultSendParams)
+    if not self.game.receivers[kind] then -- Don't redefine
+        self.game:defineMessageKind(kind, opts.defaultSendParams)
+    end
 
     -- Receiver
-    assert(not self.game.receivers[kind], 'Physics: kind collision detected -- please use `opts.kindPrefix` ' ..
-        'if you want multiple `Physics`es within one game')
     self.game.receivers[kind] = assert(opts.receiver,
         '_defineMethod: need to define a receiver for `' .. methodName .. '`')
 
