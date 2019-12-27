@@ -26,7 +26,7 @@ function Game.Client:loadPhoto(clientId)
 end
 
 
--- Connect / disconnect
+-- Connect / reconnect / disconnect
 
 function Game.Client:connect()
     Game.Common.connect(self)
@@ -34,6 +34,15 @@ function Game.Client:connect()
     -- Send `me`
     local me = castle.user.getMe()
     self:send('me', self.clientId, me)
+end
+
+function Game.Client:reconnect()
+    Game.Common.reconnect(self)
+
+    -- Clear stale state
+    self.players = {}
+    self.mes = {}
+    self.photos = {}
 end
 
 
@@ -49,6 +58,11 @@ end
 function Game.Client.receivers:fullState(time, state)
     -- Read players
     for clientId, player in pairs(state.players) do
+        if clientId == self.clientId then -- Own player (happens if reconnecting)?
+            player.history = nil
+            player.own = true
+            player.vx, player.vy = 0, 0
+        end
         self.players[clientId] = player
     end
 
@@ -108,6 +122,11 @@ end
 -- Draw
 
 function Game.Client:draw()
+    if not self.connected then
+        love.graphics.print('not connected...', 20, 20)
+        return
+    end
+
     -- Draw players
     for clientId, player in pairs(self.players) do
         if self.photos[clientId] then
@@ -115,6 +134,25 @@ function Game.Client:draw()
             love.graphics.draw(photo, player.x - 20, player.y - 20, 0, 40 / photo:getWidth(), 40 / photo:getHeight())
         else
             love.graphics.rectangle('fill', player.x - 20, player.y - 20, 40, 40)
+        end
+    end
+end
+
+
+-- UI
+
+local ui = castle.ui
+
+function Game.Client:uiupdate()
+    if self.connected then
+        ui.markdown("You are connected! Click 'kick' to disconnect yourself. You can then try reconnecting within 30 seconds.")
+        if ui.button('kick') then
+            self:kick()
+        end
+    elseif not self.connected and self.clientId then
+        ui.markdown("You are disconnected. Click 'retry' to try reconnecting.")
+        if ui.button('retry') then
+            self:retry()
         end
     end
 end

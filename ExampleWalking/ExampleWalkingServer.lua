@@ -4,6 +4,16 @@ Game = require('../server', { root = true }) -- You would use the full 'https://
 require 'ExampleWalkingCommon'
 
 
+-- Start / stop
+
+function Game.Server:start()
+    Game.Common.start(self)
+
+    -- Server-local data
+    self.disconnectTimes = {}
+end
+
+
 -- Connect / disconnect
 
 function Game.Server:connect(clientId)
@@ -21,7 +31,43 @@ function Game.Server:connect(clientId)
     self:send('addPlayer', clientId, x, y)
 end
 
+function Game.Server:reconnect(clientId)
+    -- Unmark them as disconnected
+    self.disconnectTimes[clientId] = nil
+
+    -- Send full state to client
+    self:send({
+        to = clientId,
+        kind = 'fullState',
+    }, {
+        players = self.players,
+        mes = self.mes,
+    })
+end
+
 function Game.Server:disconnect(clientId)
-    -- Remove player for old client
-    self:send('removePlayer', clientId)
+    local player = self.players[clientId]
+    if player then
+        -- Don't remove -- just remember the time they disconnected
+        self.disconnectTimes[clientId] = self.time
+
+        -- Make sure they stop moving
+        self:send({
+            to = 'all',
+            kind = 'playerPositionVelocity',
+            reliable = true,
+            selfSend = true,
+        }, clientId, player.x, player.y, 0, 0)
+    end
+end
+
+function Game.Server:update(dt)
+    -- Remove players that have stayed disconnected for too long
+    for clientId, player in pairs(self.players) do
+        if self.disconnectTimes[clientId] and self.time - self.disconnectTimes[clientId] > 30 then
+            self:send('removePlayer', clientId)
+        end
+    end
+
+    Game.Common.update(self, dt)
 end
