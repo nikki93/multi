@@ -55,6 +55,10 @@ In your methods, you can call methods on `self` that are pre-defined by the libr
 
 ### `:send`
 
+### `:kick`
+
+### `:retry`
+
 ### `:generateId`
 
 ## Methods you can implement
@@ -66,6 +70,8 @@ In your methods, you can call methods on `self` that are pre-defined by the libr
 ### `:stop`
 
 ### `:connect`
+
+### `:reconnect`
 
 ### `:disconnect`
 
