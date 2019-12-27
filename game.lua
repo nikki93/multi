@@ -28,6 +28,7 @@ function Game:_init(opts)
 
     if self.client then
         self.connected = false
+        self.autoRetry = true
     end
 
     self._nextIdSuffix = 1
@@ -98,6 +99,7 @@ function Game.receivers:_initial(_, time)
     -- Ready to call `:connect`
     self.connected = true
     if self.clientId then -- Is it a reconnect?
+        self._lastRetryTime = nil
         self:reconnect()
     else -- First connect!
         self.clientId = self.client.id
@@ -272,6 +274,7 @@ function Game:_update(dt)
         self.time = love.timer.getTime() + self._timeDelta
     end
 
+    -- Flush pending receives
     if self.time then
         while true do
             local pendingReceive = self._pendingReceives:Peek()
@@ -290,6 +293,20 @@ function Game:_update(dt)
         end
     end
     self._nextReceiveSequenceNum = 1
+
+    if self.client then
+        -- If client didn't update for more than 1 second, restart the connection
+        local time = love.timer.getTime()
+        if self.connected and self._lastUpdateTime and time - self._lastUpdateTime > 1 then
+            self:kick()
+        end
+        self._lastUpdateTime = time
+
+        -- Auto-reconnection
+        if self.autoRetry and self.clientId and not self.connected then
+            self:retry()
+        end
+    end
 
     self:update(dt)
 end
@@ -310,8 +327,9 @@ end
 
 function Game:retry()
     assert(self.client, 'only clients can retry')
-    if self.client then
+    if not self._lastRetryTime or love.timer.getTime() - self._lastRetryTime > 10 then
         self.client.retry()
+        self._lastRetryTime = love.timer.getTime()
     end
 end
 

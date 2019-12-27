@@ -263,9 +263,18 @@ do
         client.sendExt(nil, nil, ...)
     end
 
-    function client.kick()
-        assert(peer, 'client is not connected'):disconnect()
-        host:flush()
+    function client.kick(send)
+        if send ~= false then
+            assert(peer, 'client is not connected'):disconnect()
+            host:flush()
+        end
+        if client.disconnect then
+            client.disconnect()
+        end
+        client.connected = false
+        --client.id = nil -- NOTE: We're keeping `client.id` for retries
+        host = nil
+        peer = nil
     end
 
     function client.getPing()
@@ -285,7 +294,13 @@ do
         if host then
             while true do
                 if not host then break end
-                local event = host:service(0)
+                local event
+                local succeeded = pcall(function()
+                    event = host:service(0)
+                end)
+                if not succeeded then
+                    event = 'disconnect'
+                end
                 if not event then break end
 
                 -- Server connected?
@@ -295,13 +310,7 @@ do
 
                 -- Server disconnected?
                 if event.type == 'disconnect' then
-                    if client.disconnect then
-                        client.disconnect()
-                    end
-                    client.connected = false
-                    --client.id = nil -- NOTE: We're keeping `client.id` for retries
-                    host = nil
-                    peer = nil
+                    client.kick(false)
                 end
 
                 -- Received a request?
