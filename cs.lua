@@ -18,6 +18,7 @@ do
     server.enabled = false
     server.maxClients = MAX_MAX_CLIENTS
     server.isAcceptingClients = true
+    server.timeout = 60
     server.sendRate = 35
     server.numChannels = 1
 
@@ -28,6 +29,7 @@ do
     local peerToId = {}
     local idToPeer = {}
     local idToSessionToken = {}
+    local idToDisconnectTime = {}
     local nextId = 1
     local numClients = 0
 
@@ -96,20 +98,27 @@ do
 
                 -- Someone connected?
                 if event.type == 'connect' then
-                    if numClients < server.maxClients then
-                        local id
-                        if event.data ~= 0 then -- It's a reconnect
+                    local id, fail
+                    if event.data ~= 0 then -- Retry?
+                        if idToDisconnectTime[event.data] then
                             id = event.data
-                        else -- New connect, generate an id
-                            id = nextId
-                            nextId = nextId + 1
+                            idToDisconnectTime[event.data] = nil
+                        else
+                            fail = 'timeout'
                         end
+                    elseif numClients < server.maxClients then -- New connect, generate an id
+                        id = nextId
+                        nextId = nextId + 1
+                        numClients = numClients + 1
+                    else
+                        fail = 'full'
+                    end
+                    if id then
                         peerToId[event.peer] = id
                         idToPeer[id] = event.peer
-                        numClients = numClients + 1
                         if CASTLE_SERVER then
-                            castle.setIsAcceptingClients(server.isAcceptingClients and
-                                    numClients < server.maxClients)
+                            castle.setIsAcceptingClients(
+                                server.isAcceptingClients and numClients < server.maxClients)
                         end
                         if event.data ~= 0 then
                             if server.reconnect then
@@ -124,7 +133,7 @@ do
                             id = id,
                         }))
                     else
-                        event.peer:send(encode({ full = true }))
+                        event.peer:send(encode({ fail = fail }))
                         event.peer:disconnect_later()
                     end
                 end
@@ -138,12 +147,8 @@ do
                         end
                         idToPeer[id] = nil
                         peerToId[event.peer] = nil
-                        idToSessionToken[id] = nil
-                        numClients = numClients - 1
-                        if CASTLE_SERVER then
-                            castle.setIsAcceptingClients(server.isAcceptingClients and
-                                    numClients < server.maxClients)
-                        end
+                        idToDisconnectTime[id] = love.timer.getTime()
+                        -- Decrement `numClients` etc. only after the timeout
                     end
                 end
 
@@ -181,12 +186,24 @@ do
             host:flush() -- Tell ENet to send outgoing messages
         end
 
-        if CASTLE_SERVER then -- On dedicated servers we need to periodically say we're alive
+        local time = love.timer.getTime()
+        for id, disconnectTime in pairs(idToDisconnectTime) do
+            if time - disconnectTime > server.timeout then
+                idToDisconnectTime[id] = nil
+                --idToSessionToken[id] = nil -- NOTE: Keep session token around to auth future connects
+                numClients = numClients - 1
+                if CASTLE_SERVER then
+                    castle.setIsAcceptingClients(
+                        server.isAcceptingClients and numClients < server.maxClients)
+                end
+            end
+        end
+
+        if CASTLE_SERVER then -- On hosted servers we need to heartbeat the underlying infrastructure
             local sessionTokens = {}
             for k, v in pairs(idToSessionToken) do
                 table.insert(sessionTokens, v)
             end
-
             castle.multiplayer.heartbeatV2(numClients, sessionTokens)
         end
     end
@@ -318,13 +335,13 @@ do
                         }))
                     end
 
-                    -- Full?
-                    if request.full then
-                        if client.full then
-                            client.full()
+                    -- Fail?
+                    if request.fail then
+                        if client.fail then
+                            client.fail(request.fail)
                         end
                         if castle and castle.connectionFailed then
-                            castle.connectionFailed('full')
+                            castle.connectionFailed(request.fail)
                         end
                     end
                 end
