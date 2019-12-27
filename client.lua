@@ -8,6 +8,20 @@ local print = PRINT_OVERRIDE or print
 local client = clientServer.client
 client.numChannels = NUM_CHANNELS or 200
 
+if GET_SERVER_MODULE_NAME then
+    local gameUrl = castle.game.getCurrent().url
+    local isFileUrl = gameUrl:match('^file://')
+    local isLANUrl = gameUrl:match('^http://192') or gameUrl:match('^http://172.20') -- NOTE(nikki): May need to add more patterns here...
+    if isFileUrl or isLANUrl then
+        USE_LOCAL_SERVER = true
+        if isLANUrl then
+            LOCAL_SERVER_ADDRESS = gameUrl:match('^http://([^:/]*)')
+        else
+            getfenv(GET_SERVER_MODULE_NAME).require(GET_SERVER_MODULE_NAME())
+        end
+    end
+end
+
 if USE_LOCAL_SERVER then
     client.enabled = true
     client.start((LOCAL_SERVER_ADDRESS or '127.0.0.1') .. ':22122')
