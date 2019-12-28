@@ -259,18 +259,36 @@ function Physics.new(opts)
                 error('destroyObject: no / bad `id`')
             end
 
-            -- TODO(nikki): Clear map entries for associated fixtures and joints if it's a body
+            local function clearMapEntries(id, obj)
+                self.objectDatas[obj] = nil
+                self.idToWorld[id] = nil
+                self.idToObject[id] = nil
+            end
 
-            -- Clear table entries
+            -- Visit associated objects
+            if obj:typeOf('Body') then
+                for _, fixture in pairs(obj:getFixtures()) do
+                    local fixtureData = self.objectDatas[fixture]
+                    if fixtureData then
+                        clearMapEntries(fixtureData.id, fixture)
+                    end
+                end
+                for _, joint in pairs(obj:getJoints()) do
+                    local jointData = self.objectDatas[joint]
+                    if jointData then
+                        handleId(jointData.id, joint)
+                    end
+                end
+            end
+
+            -- Visit this object
             local objectData = self.objectDatas[obj]
             if objectData.ownerId then
                 self.ownerIdToObjects[objectData.ownerId][obj] = nil
             end
-            self.objectDatas[obj] = nil
-            self.idToWorld[id] = nil
-            self.idToObject[id] = nil
+            clearMapEntries(id, obj)
 
-            -- Call actual object destructor
+            -- Call actual object destructor (calls destructors for associated objects automatically)
             if obj.destroy then
                 obj:destroy()
             else
