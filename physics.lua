@@ -712,7 +712,7 @@ function Physics:_tickWorld(world, worldData)
                 end
 
                 -- Write to history if not static or sleeping
-                if worldData.tickCount % self.historyRate == 0 and body:isAwake() and body:getType() ~= 'static' then
+                if false and worldData.tickCount % self.historyRate == 0 and body:isAwake() and body:getType() ~= 'static' then
                     local pooled = table.remove(historyPool)
                     if pooled then
                         pooled[1], pooled[2], pooled[3], pooled[4], pooled[5], pooled[6] = readBodySync(body)
