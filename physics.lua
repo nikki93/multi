@@ -758,13 +758,13 @@ function Physics:updateWorld(worldId, dt)
     end
 
     -- Catch up world to current time
-    --if self.game.client and (not worldData.lastServerSyncTime or
-    --        self.game.time - worldData.lastServerSyncTime > 3 * (1 / self.serverSyncsRate)) then
-    --    if worldData.lastServerSyncTime then
-    --        self.lastNetworkIssueTime = love.timer.getTime()
-    --    end
-    --    return false
-    --end
+    if self.game.client and (not worldData.lastServerSyncTime or
+            self.game.time - worldData.lastServerSyncTime > 5 / self.serverSyncsRate) then
+        if worldData.lastServerSyncTime then
+            self.lastNetworkIssueTime = love.timer.getTime()
+        end
+        return false
+    end
     worldData.updateTimeRemaining = worldData.updateTimeRemaining + dt
     while worldData.updateTimeRemaining >= 1 / self.updateRate do
         self:_tickWorld(world, worldData)

@@ -39,7 +39,7 @@ function Game.Server:start()
         self.physics:setRestitution(fixtureId, 0.6)
     end
 
-    for i = 1, 80 do -- Small balls
+    for i = 1, 40 do -- Small balls
         createDynamicBody(self.physics:newCircleShape(math.random(5, 12)))
     end
 
