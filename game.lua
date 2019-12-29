@@ -190,7 +190,7 @@ function Game:send(opts, ...)
         if self.server then
             local to = opts.to or defaults.to
             assert(type(to) == 'number' or to == 'all', "send: `to` needs to be a number or 'all'")
-            self.server.sendExt(to, channel, flag, kindNum, time, false, nil, nil, ...)
+            self.server.sendExt(to, channel, flag, kindNum, time, false, nil, ...)
         end
         if self.client then
             local forward = opts.forward
@@ -199,9 +199,9 @@ function Game:send(opts, ...)
             end
             assert(type(forward) == 'boolean', 'send: `forward` needs to be a boolean')
             if forward then
-                self.client.sendExt(channel, flag, kindNum, time, true, channel, reliable, ...)
+                self.client.sendExt(channel, flag, kindNum, time, true, reliable, ...)
             else
-                self.client.sendExt(channel, flag, kindNum, time, false, nil, nil, ...)
+                self.client.sendExt(channel, flag, kindNum, time, false, nil, ...)
             end
         end
     end
@@ -212,11 +212,11 @@ function Game:send(opts, ...)
     end
     assert(type(selfSend) == 'boolean', 'send: `selfSend` needs to be a boolean')
     if selfSend then
-        self:_receive(self.clientId, kindNum, time, false, nil, nil, ...)
+        self:_receive(self.clientId, nil, kindNum, time, false, nil, ...)
     end
 end
 
-function Game:_receive(fromClientId, kindNum, time, forward, channel, reliable, ...)
+function Game:_receive(fromClientId, channel, kindNum, time, forward, reliable, ...)
     -- `_initial` and `_ping` are special -- receive immediately. Otherwise, enqueue to receive based
     -- on priority later.
     if kindNum == self._kindToNum['_initial'] or kindNum == self._kindToNum['_ping'] then
@@ -239,7 +239,7 @@ function Game:_receive(fromClientId, kindNum, time, forward, channel, reliable, 
         local flag = reliable and 'reliable' or 'unreliable'
         for clientId in pairs(self._clientIds) do
             if forwardToOrigin or clientId ~= fromClientId then
-                self.server.sendExt(clientId, channel, flag, kindNum, time, false, nil, nil, ...)
+                self.server.sendExt(clientId, channel, flag, kindNum, time, false, nil, ...)
             end
         end
     end

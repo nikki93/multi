@@ -51,8 +51,8 @@ function server.disconnect(clientId)
 end
 
 
-function server.receive(clientId, ...)
-    game:_receive(clientId, ...)
+function server.receive(clientId, channel, ...)
+    game:_receive(clientId, channel, ...)
 end
 
 

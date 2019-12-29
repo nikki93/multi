@@ -165,7 +165,7 @@ do
 
                         -- Message?
                         if request[1] and server.receive then
-                            server.receive(id, unpack(request, 2, request[1] + 1))
+                            server.receive(id, event.channel, unpack(request, 2, request[1] + 1))
                         end
                     end
                 end
@@ -319,7 +319,7 @@ do
 
                     -- Message?
                     if request[1] and client.receive then
-                        client.receive(unpack(request, 2, request[1] + 1))
+                        client.receive(event.channel, unpack(request, 2, request[1] + 1))
                     end
 
                     -- Id?

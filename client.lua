@@ -63,8 +63,8 @@ function client.disconnect()
 end
 
 
-function client.receive(...)
-    game:_receive(nil, ...)
+function client.receive(channel, ...)
+    game:_receive(nil, channel, ...)
 end
 
 
