@@ -106,7 +106,7 @@ function Physics.new(opts)
     self.serverSyncsChannel = opts.serverSyncsChannel or 101
     self.clientSyncsChannel = opts.clientSyncsChannel or 102
 
-    self.serverSyncsRate = opts.serverSyncsRate or 10
+    self.serverSyncsRate = opts.serverSyncsRate or 20
     self.clientSyncsRate = opts.clientSyncsRate or 30
 
     self.updateRate = opts.updateRate or 144
