@@ -1,6 +1,9 @@
 local Physics = {}
 
 
+local historyPool = {}
+
+
 -- A `sync` is a serialization of frequently-varying object state (such as a body's position or velocity)
 
 local function readBodySync(body)
@@ -107,6 +110,7 @@ function Physics.new(opts)
     self.clientSyncsRate = opts.clientSyncsRate or 30
 
     self.updateRate = opts.updateRate or 144
+    self.historyRate = opts.historyRate or 12
     self.historySize = opts.historySize or (self.updateRate * 0.5)
     self.interpolationDelay = opts.interpolationDelay or 0.08
     self.softOwnershipSetDelay = opts.softOwnershipSetDelay or 0.8
@@ -166,14 +170,14 @@ function Physics.new(opts)
                     end, ...)
                     if succeeded then
                         self.idToObject[id] = obj
-                        local objectData = {
-                            id = id,
-                            ownerId = nil,
-                            lastSetOwnerTickCount = 0,
-                            clientSyncHistory = {},
-                        }
-                        if self.game.server then
-                            objectData.history = {}
+                        local objectData = { id = id }
+                        if methodName == 'newBody' then
+                            objectData.ownerId = nil
+                            objectData.lastSetOwnerTickCount = 0
+                            objectData.clientSyncHistory = {}
+                            if self.game.server then
+                                objectData.history = {}
+                            end
                         end
                         if methodName == 'newWorld' then
                             self.idToWorld[id] = obj
@@ -285,6 +289,12 @@ function Physics.new(opts)
             local objectData = self.objectDatas[obj]
             if objectData.ownerId then
                 self.ownerIdToObjects[objectData.ownerId][obj] = nil
+            end
+            local history = objectData.history
+            if history then -- Return history entries to pool
+                for _, entry in pairs(history) do
+                    table.insert(historyPool, entry)
+                end
             end
             clearMapEntries(id, obj)
 
@@ -695,18 +705,18 @@ function Physics:_tickWorld(world, worldData)
             if objectData then
                 local history = objectData.history
 
-                -- Clear old history
-                local reuse
+                -- Clear old history, returning to pool
                 if history[worldData.tickCount - self.historySize] then
-                    reuse = history[worldData.tickCount - self.historySize]
+                    table.insert(historyPool, history[worldData.tickCount - self.historySize])
                     history[worldData.tickCount - self.historySize] = nil
                 end
 
                 -- Write to history if not static or sleeping
-                if body:isAwake() and body:getType() ~= 'static' then
-                    if reuse then
-                        reuse[1], reuse[2], reuse[3], reuse[4], reuse[5], reuse[6] = readBodySync(body)
-                        history[worldData.tickCount] = reuse
+                if worldData.tickCount % self.historyRate == 0 and body:isAwake() and body:getType() ~= 'static' then
+                    local pooled = table.remove(historyPool)
+                    if pooled then
+                        pooled[1], pooled[2], pooled[3], pooled[4], pooled[5], pooled[6] = readBodySync(body)
+                        history[worldData.tickCount] = pooled
                     else
                         history[worldData.tickCount] = { readBodySync(body) }
                     end
@@ -731,10 +741,8 @@ function Physics:updateWorld(worldId, dt)
                     local clientSyncHistory = objectData.clientSyncHistory
 
                     -- Interpolate from client syncs, or use full history if no client sync interpolation worked
-                    if not (next(clientSyncHistory) and writeInterpolatedBodySync(body, worldData.nextRewindFrom, clientSyncHistory)) then
-                        if history[worldData.nextRewindFrom] then
-                            writeBodySync(body, unpack(history[worldData.nextRewindFrom]))
-                        end
+                    if not writeInterpolatedBodySync(body, worldData.nextRewindFrom, clientSyncHistory) then
+                        writeInterpolatedBodySync(body, worldData.nextRewindFrom, history)
                     end
                 end
             end
