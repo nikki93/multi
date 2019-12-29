@@ -107,7 +107,7 @@ function Physics.new(opts)
     self.clientSyncsRate = opts.clientSyncsRate or 30
 
     self.updateRate = opts.updateRate or 144
-    self.historySize = opts.historySize or (self.updateRate * 2)
+    self.historySize = opts.historySize or (self.updateRate * 0.5)
     self.interpolationDelay = opts.interpolationDelay or 0.08
     self.softOwnershipSetDelay = opts.softOwnershipSetDelay or 0.8
 
@@ -702,8 +702,8 @@ function Physics:_tickWorld(world, worldData)
                     history[worldData.tickCount - self.historySize] = nil
                 end
 
-                -- Write to history if not static
-                if body:getType() ~= 'static' then
+                -- Write to history if not static or sleeping
+                if body:isAwake() and body:getType() ~= 'static' then
                     if reuse then
                         reuse[1], reuse[2], reuse[3], reuse[4], reuse[5], reuse[6] = readBodySync(body)
                         history[worldData.tickCount] = reuse
