@@ -99,6 +99,7 @@ function Game.Server:update(dt)
     local time = love.timer.getTime()
     if time - lastFPSPrintTime > 1 then
         print('fps: ' .. love.timer.getFPS())
+        print('mem: ' .. math.floor(collectgarbage('count')) .. 'kb')
         lastFPSPrintTime = time
     end
 end
