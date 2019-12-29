@@ -39,7 +39,7 @@ function Game.Server:start()
         self.physics:setRestitution(fixtureId, 0.6)
     end
 
-    for i = 1, 40 do -- Small balls
+    for i = 1, 80 do -- Small balls
         createDynamicBody(self.physics:newCircleShape(math.random(5, 12)))
     end
 
@@ -84,6 +84,8 @@ end
 
 -- Update
 
+local lastFPSPrintTime = love.timer.getTime()
+
 function Game.Server:update(dt)
     -- Common update
     Game.Common.update(self, dt)
@@ -92,5 +94,11 @@ function Game.Server:update(dt)
     local worldId, world = self.physics:getWorld()
     if worldId then
         self.physics:sendSyncs(worldId)
+    end
+
+    local time = love.timer.getTime()
+    if time - lastFPSPrintTime > 1 then
+        print('fps: ' .. love.timer.getFPS())
+        lastFPSPrintTime = time
     end
 end
