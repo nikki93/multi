@@ -103,7 +103,7 @@ function Physics.new(opts)
     self.serverSyncsChannel = opts.serverSyncsChannel or 101
     self.clientSyncsChannel = opts.clientSyncsChannel or 102
 
-    self.serverSyncsRate = opts.serverSyncsRate or 20
+    self.serverSyncsRate = opts.serverSyncsRate or 5
     self.clientSyncsRate = opts.clientSyncsRate or 30
 
     self.updateRate = opts.updateRate or 144
@@ -750,7 +750,8 @@ function Physics:updateWorld(worldId, dt)
     end
 
     -- Catch up world to current time
-    if self.game.client and (not worldData.lastServerSyncTime or self.game.time - worldData.lastServerSyncTime > 1.25 * self.interpolationDelay) then
+    if self.game.client and (not worldData.lastServerSyncTime or
+            self.game.time - worldData.lastServerSyncTime > 3 * (1 / self.serverSyncsRate)) then
         if worldData.lastServerSyncTime then
             self.lastNetworkIssueTime = love.timer.getTime()
         end
