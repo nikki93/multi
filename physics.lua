@@ -21,7 +21,13 @@ local function writeBodySync(body, x, y, vx, vy, a, va)
     body:setAngularVelocity(va)
 end
 
-local function writeInterpolatedBodySync(body, interpolatedTick, history)
+local function writeInterpolatedBodySync(body, interpolatedTick, history, currentTick)
+    -- Is there an exact entry?
+    if history[interpolatedTick] then
+        writeBodySync(body, unpack(history[interpolatedTick]))
+        return true
+    end
+    
     -- Find closest ticks before and after the one we want to interpolate to
     local beforeTick, afterTick
     for i in pairs(history) do
@@ -35,6 +41,17 @@ local function writeInterpolatedBodySync(body, interpolatedTick, history)
     if beforeTick and afterTick then
         local f = (interpolatedTick - beforeTick) / (afterTick - beforeTick)
         local beforeSync, afterSync = history[beforeTick], history[afterTick]
+        local interpolatedSync = {}
+        for i = 1, #beforeSync do
+            interpolatedSync[i] = beforeSync[i] + f * (afterSync[i] - beforeSync[i])
+        end
+        writeBodySync(body, unpack(interpolatedSync))
+        return true
+    end
+    if beforeTick then
+        afterTick = currentTick
+        local f = (interpolatedTick - beforeTick) / (afterTick - beforeTick)
+        local beforeSync, afterSync = history[beforeTick], { readBodySync(body) }
         local interpolatedSync = {}
         for i = 1, #beforeSync do
             interpolatedSync[i] = beforeSync[i] + f * (afterSync[i] - beforeSync[i])
@@ -110,7 +127,6 @@ function Physics.new(opts)
     self.clientSyncsRate = opts.clientSyncsRate or 30
 
     self.updateRate = opts.updateRate or 144
-    self.historyRate = opts.historyRate or 12
     self.historySize = opts.historySize or (self.updateRate * 0.5)
     self.interpolationDelay = opts.interpolationDelay or 0.08
     self.softOwnershipSetDelay = opts.softOwnershipSetDelay or 0.8
@@ -692,7 +708,7 @@ function Physics:_tickWorld(world, worldData)
                         interpolationDelay = 0.8 * interpolationDelay
                     end
                     local interpolatedTick = math.floor(worldData.tickCount - interpolationDelay * self.updateRate)
-                    writeInterpolatedBodySync(obj, interpolatedTick, clientSyncHistory)
+                    writeInterpolatedBodySync(obj, interpolatedTick, clientSyncHistory, worldData.tickCount)
                 end
             end
         end
@@ -712,7 +728,7 @@ function Physics:_tickWorld(world, worldData)
                 end
 
                 -- Write to history if not static or sleeping
-                if worldData.tickCount % self.historyRate == 0 and body:isAwake() and body:getType() ~= 'static' then
+                if body:isAwake() and body:getType() ~= 'static' then
                     local pooled = table.remove(historyPool)
                     if pooled then
                         pooled[1], pooled[2], pooled[3], pooled[4], pooled[5], pooled[6] = readBodySync(body)
@@ -731,6 +747,7 @@ function Physics:updateWorld(worldId, dt)
     local worldData = self.objectDatas[world]
 
     -- If server, perform any outstanding rewinds we need to do
+    local restore = {}
     if self.game.server and worldData.nextRewindFrom then
         -- Rewind
         for _, body in ipairs(world:getBodies()) do
@@ -741,8 +758,13 @@ function Physics:updateWorld(worldId, dt)
                     local clientSyncHistory = objectData.clientSyncHistory
 
                     -- Interpolate from client syncs, or use full history if no client sync interpolation worked
-                    if not writeInterpolatedBodySync(body, worldData.nextRewindFrom, clientSyncHistory) then
-                        writeInterpolatedBodySync(body, worldData.nextRewindFrom, history)
+                    if not writeInterpolatedBodySync(body, worldData.nextRewindFrom, clientSyncHistory, worldData.tickCount) then
+                        if history[worldData.nextRewindFrom] then
+                            writeBodySync(body, unpack(history[worldData.nextRewindFrom]))
+                        else
+                            -- Couldn't rewind, restore to this state later
+                            restore[body] = { readBodySync(body) }
+                        end
                     end
                 end
             end
@@ -770,6 +792,12 @@ function Physics:updateWorld(worldId, dt)
         self:_tickWorld(world, worldData)
         worldData.updateTimeRemaining = worldData.updateTimeRemaining - 1 / self.updateRate
     end
+
+    -- Restore bodies that weren't actually rewound
+    for body, restoreSync in pairs(restore) do
+        writeBodySync(body, unpack(restoreSync))
+    end
+
     return true
 end
 
@@ -802,7 +830,9 @@ function Physics:sendSyncs(worldId)
                 self:setOwner(objectData.id, nil, false)
             end
         end
-        self:clientSyncs(self.game.clientId, self.objectDatas[world].tickCount, worldId, syncs)
+        if next(syncs) then -- Skip if nothing to send
+            self:clientSyncs(self.game.clientId, self.objectDatas[world].tickCount, worldId, syncs)
+        end
     end
 end
 
