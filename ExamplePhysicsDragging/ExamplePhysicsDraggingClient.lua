@@ -1,3 +1,6 @@
+function GET_SERVER_MODULE_NAME()
+    return 'ExamplePhysicsDraggingServer'
+end
 Game = require('../client', { root = true }) -- You would use the full 'https://...' raw URI to 'client.lua' here
 
 
