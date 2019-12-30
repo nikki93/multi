@@ -338,7 +338,7 @@ function Physics.new(opts)
             forward = true,
         },
 
-        receiver = function(_, time, tickCount, id, newOwnerId, strongOwned, ...)
+        receiver = function(_, time, tickCount, id, newOwnerId, strongOwned)
             local obj = self.idToObject[id]
             if not obj then
                 error('setOwner: no / bad `id`')
@@ -353,6 +353,8 @@ function Physics.new(opts)
                     self.ownerIdToObjects[objectData.ownerId][obj] = nil
                     objectData.ownerId = nil
                 end
+
+                objectData.lastSetOwnerTickCount = 0
             else -- Setting owner
                 if objectData.ownerId ~= nil then -- Already owned by someone?
                     if objectData.ownerId == newOwnerId then
@@ -365,6 +367,8 @@ function Physics.new(opts)
 
                 self.ownerIdToObjects[newOwnerId][obj] = true
                 objectData.ownerId = newOwnerId
+
+                objectData.lastSetOwnerTickCount = tickCount
             end
 
             if strongOwned then
@@ -372,18 +376,6 @@ function Physics.new(opts)
             else
                 objectData.strongOwned = nil
             end
-
-            if select('#', ...) > 0 then
-                local worldData = self.objectDatas[obj:getWorld()]
-
-                objectData.clientSyncHistory = {}
-
-                local interpolatedTick = math.floor(worldData.tickCount - self.interpolationDelay * self.updateRate)
-                objectData.clientSyncHistory[interpolatedTick] = { readBodySync(obj) }
-                objectData.clientSyncHistory[tickCount] = { ... }
-            end
-
-            objectData.lastSetOwnerTickCount = tickCount
         end,
 
         sender = function(kind)
@@ -529,7 +521,7 @@ function Physics.new(opts)
                         if d2.ownerId ~= d1.ownerId then
                             if worldData.tickCount - d2.lastSetOwnerTickCount >= self.softOwnershipSetDelay * self.updateRate then
                                 if d1.strongOwned or d1.lastSetOwnerTickCount > d2.lastSetOwnerTickCount then
-                                    self:setOwner(d2.id, d1.ownerId, false, readBodySync(body2))
+                                    self:setOwner(d2.id, d1.ownerId, false)
                                 end
                             end
                         end
