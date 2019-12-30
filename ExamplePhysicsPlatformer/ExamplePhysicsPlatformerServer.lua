@@ -36,8 +36,8 @@ function Game.Server:start()
         local bodyId = self.physics:newBody(worldId, math.random(70, 800 - 70), math.random(70, 70), 'dynamic')
         local fixtureId = self.physics:newFixture(bodyId, shapeId, 1)
         self.physics:destroyObject(shapeId)
-        self.physics:setFriction(fixtureId, 0.4)
-        self.physics:setLinearDamping(bodyId, 2.8)
+        self.physics:setFriction(fixtureId, 0.2)
+        self.physics:setLinearDamping(bodyId, 1.2)
     end
 
     -- for i = 1, 10 do -- Rectangles
