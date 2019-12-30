@@ -274,6 +274,20 @@ function Game:_update(dt)
         self.time = love.timer.getTime() + self._timeDelta
     end
 
+    if self.client then
+        -- If client didn't update for more than 1 second, restart the connection
+        local time = love.timer.getTime()
+        if self.connected and self._lastUpdateTime and time - self._lastUpdateTime > 1 then
+            self:kick()
+        end
+        self._lastUpdateTime = time
+
+        -- Auto-reconnection
+        if self.autoRetry and self.clientId and not self.connected then
+            self:retry()
+        end
+    end
+
     -- Flush pending receives
     if self.time then
         while true do
@@ -293,20 +307,6 @@ function Game:_update(dt)
         end
     end
     self._nextReceiveSequenceNum = 1
-
-    if self.client then
-        -- If client didn't update for more than 1 second, restart the connection
-        local time = love.timer.getTime()
-        if self.connected and self._lastUpdateTime and time - self._lastUpdateTime > 1 then
-            self:kick()
-        end
-        self._lastUpdateTime = time
-
-        -- Auto-reconnection
-        if self.autoRetry and self.clientId and not self.connected then
-            self:retry()
-        end
-    end
 
     self:update(dt)
 end
