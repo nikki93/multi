@@ -327,7 +327,7 @@ end
 
 function Game:retry()
     assert(self.client, 'only clients can retry')
-    if not self._lastRetryTime or love.timer.getTime() - self._lastRetryTime > 10 then
+    if not self._lastRetryTime or love.timer.getTime() - self._lastRetryTime > 3 then
         self.client.retry()
         self._lastRetryTime = love.timer.getTime()
     end

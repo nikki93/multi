@@ -100,10 +100,15 @@ do
                 if event.type == 'connect' then
                     local id, fail
                     if event.data ~= 0 then -- Retry?
-                        if idToDisconnectTime[event.data] then
-                            id = event.data
+                        id = event.data
+                        if idToPeer[id] then -- Clear zombie peer if exists
+                            idToPeer[id]:disconnect_now()
+                            peerToId[idToPeer[id]] = nil
+                            idToPeer[id] = nil
+                            idToDisconnectTime[id] = nil
+                        elseif idToDisconnectTime[event.data] then -- No zombie, within timeout
                             idToDisconnectTime[event.data] = nil
-                        else
+                        else -- Timed out!
                             fail = 'timeout'
                         end
                     elseif numClients < server.maxClients then -- New connect, generate an id
@@ -298,8 +303,9 @@ do
                 local succeeded = pcall(function()
                     event = host:service(0)
                 end)
-                if not succeeded then
-                    event = 'disconnect'
+                if not succeeded then -- `:service` error? Abort!
+                    client.kick(false)
+                    break
                 end
                 if not event then break end
 
