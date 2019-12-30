@@ -70,6 +70,8 @@ function Game:_init(opts)
     self:define()
 
     self:start()
+
+    self._started = true
 end
 
 function Game:_connect(clientId, isReconnect)
@@ -256,6 +258,10 @@ end
 
 
 function Game:_update(dt)
+    if not self._started then -- May happen if `love.load` didn't finish yet
+        return
+    end
+
     -- Manage throttling
     for kind, throttle in pairs(self._kindThrottles) do
         if throttle.timeSinceLastSend > throttle.period then
