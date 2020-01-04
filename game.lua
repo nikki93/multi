@@ -214,7 +214,7 @@ function Game:send(opts, ...)
     end
     assert(type(selfSend) == 'boolean', 'send: `selfSend` needs to be a boolean')
     if selfSend then
-        self:_receive(self.clientId, nil, kindNum, time, false, nil, ...)
+        self:_callReceiver(kindNum, time, ...)
     end
 end
 
