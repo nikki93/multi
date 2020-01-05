@@ -162,9 +162,6 @@ function Physics.new(opts)
     for _, methodName in ipairs(CONSTRUCTOR_NAMES) do
         self:_defineMethod(methodName, {
             defaultSendParams = {
-                -- Only server can construct objects
-                from = 'server',
-
                 -- Constructors can't be missed
                 reliable = true,
                 channel = self.reliableChannel,
@@ -260,9 +257,6 @@ function Physics.new(opts)
 
     self:_defineMethod('destroyObject', {
         defaultSendParams = {
-            -- Only server can destroy objects
-            from = 'server',
-
             -- Destructions can't be missed
             reliable = true,
             channel = self.reliableChannel,
