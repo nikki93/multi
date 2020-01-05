@@ -106,7 +106,7 @@ local RELIABLE_METHOD_NAMES = {
     'setNextVertex', 'setPoint', 'setPosition', 'setPreviousVertex', 'setRadius',
     'setRatio', 'setRestitution', 'setSensor', 'setSleepingAllowed',
     'setSpringDampingRatio', 'setSpringFrequency', 'setTangentSpeed', 'setTarget',
-    'setType', 'setUpperLimit', 'setX', 'setY',
+    'setType', 'setUpperLimit', 'setX', 'setY', 'setUserData',
 }
 
 
@@ -592,6 +592,7 @@ function Physics:syncNewClient(opts)
             send('newWorld', id, gravityX, gravityY, obj:isSleepingAllowed())
         elseif obj:typeOf('Body') then
             send('newBody', id, visit(obj:getWorld()), obj:getX(), obj:getY(), obj:getType())
+            send('setUserData', id, obj:getUserData())
             send('setMassData', id, obj:getMassData())
             send('setFixedRotation', id, obj:isFixedRotation())
 
