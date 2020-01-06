@@ -29,6 +29,7 @@ function Game:_init(opts)
     if self.client then
         self.connected = false
         self.autoRetry = true
+        -- Some more members are initialized in `_initial` receiver below
     end
 
     self._nextIdSuffix = 1
@@ -67,6 +68,13 @@ function Game:_init(opts)
         selfSend = false,
     })
 
+    self:defineMessageKind('_pong', {
+        reliable = true,
+        channel = 50,
+        selfSend = false,
+        forward = false,
+    })
+
     self:define()
 
     self:start()
@@ -100,8 +108,11 @@ function Game.receivers:_initial(_, time)
 
     -- Ready to call `:connect`
     self.connected = true
+    self._connectTime = love.timer.getTime()
+    self._lastPongSent = 0
+    self._lastPongReceived = nil
+    self._lastRetryTime = nil
     if self.clientId then -- Is it a reconnect?
-        self._lastRetryTime = nil
         self:reconnect()
     else -- First connect!
         self.clientId = self.client.id
@@ -114,6 +125,22 @@ function Game.receivers:_ping(_, time)
     self.time = math.max(self.time, 0.6 * self.time + 0.4 * time)
     self._timeDelta = self.time - love.timer.getTime()
     self._lastPingTime = self.time
+end
+
+function Game.receivers:_pong(_, clientId, pong)
+    if self.server then
+        -- Send pong back to client
+        self:send({
+            kind = '_pong',
+            to = clientId,
+        }, clientId, pong)
+    end
+    if self.client then
+        -- If our pong, track it as received
+        if self.clientId == clientId then
+            self._lastPongReceived = pong
+        end
+    end
 end
 
 function Game:_disconnect(clientId)
@@ -272,23 +299,26 @@ function Game:_update(dt)
         throttle.timeSinceLastSend = throttle.timeSinceLastSend + dt
     end
 
-    -- Let time pass
     if self.server then
         self.time = love.timer.getTime() - self._startTime
         self:send('_ping', self.time)
     end
-    if self.client and self._timeDelta then
-        self.time = love.timer.getTime() + self._timeDelta
-    end
 
     if self.client then
-        -- If client didn't update or receive a ping for more than 1 second, restart the connection
-        local time = love.timer.getTime()
-        if self.connected and ((self._lastUpdateTime and time - self._lastUpdateTime > 1) or
-                (self._lastPingTime and self.time - self._lastPingTime > 1)) then
+        -- Maintain server time
+        if self._timeDelta then
+            self.time = love.timer.getTime() + self._timeDelta
+        end
+
+        -- Periodically send pongs. Restart the connection if we didn't get a pong back for more than one second.
+        local pong = math.floor(10 * (love.timer.getTime() - self._connectTime))
+        if pong - self._lastPongSent > 5 then
+            self._lastPongSent = pong
+            self:send('_pong', self.clientId, pong)
+        end
+        if self.connected and (self._lastPongReceived and pong - self._lastPongReceived > 10) then
             self:kick()
         end
-        self._lastUpdateTime = time
 
         -- Auto-reconnection
         if self.autoRetry and self.clientId and not self.connected then
