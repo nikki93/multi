@@ -113,6 +113,7 @@ function Game.receivers:_ping(_, time)
     -- Update time
     self.time = math.max(self.time, 0.6 * self.time + 0.4 * time)
     self._timeDelta = self.time - love.timer.getTime()
+    self._lastPingTime = self.time
 end
 
 function Game:_disconnect(clientId)
@@ -281,9 +282,10 @@ function Game:_update(dt)
     end
 
     if self.client then
-        -- If client didn't update for more than 1 second, restart the connection
+        -- If client didn't update or receive a ping for more than 1 second, restart the connection
         local time = love.timer.getTime()
-        if self.connected and self._lastUpdateTime and time - self._lastUpdateTime > 1 then
+        if self.connected and ((self._lastUpdateTime and time - self._lastUpdateTime > 1) or
+                (self._lastPingTime and self.time - self._lastPingTime > 1)) then
             self:kick()
         end
         self._lastUpdateTime = time
