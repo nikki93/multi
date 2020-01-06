@@ -11,7 +11,7 @@ client.numChannels = NUM_CHANNELS or 200
 if GET_SERVER_MODULE_NAME then
     local gameUrl = castle.game.getCurrent().url
     local isFileUrl = gameUrl:match('^file://')
-    local isLANUrl = gameUrl:match('^http://192') or gameUrl:match('^http://172.20') -- NOTE(nikki): May need to add more patterns here...
+    local isLANUrl = gameUrl:match('^http://192%.') or gameUrl:match('^http://172%.20%.') or gameUrl:match('http://10%.')
     if isFileUrl or isLANUrl then
         USE_LOCAL_SERVER = true
         if isLANUrl then
