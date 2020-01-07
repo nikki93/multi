@@ -200,8 +200,14 @@ function Game:send(opts, ...)
     local reliable = opts.reliable or defaults.reliable
     assert(type(reliable) == 'boolean', 'send: `reliable` needs to be a boolean')
 
+    local selfSendOnly = opts.selfSendOnly
+    if selfSendOnly == nil then
+        selfSendOnly = defaults.selfSendOnly
+    end
     local shouldSend
-    if reliable then
+    if selfSendOnly then
+        shouldSend = false
+    elseif reliable then
         shouldSend = true
     else
         local throttle = self._kindThrottles[kind]
@@ -236,7 +242,7 @@ function Game:send(opts, ...)
         end
     end
 
-    local selfSend = opts.selfSend
+    local selfSend = selfSendOnly or opts.selfSend
     if selfSend == nil then
         selfSend = defaults.selfSend
     end

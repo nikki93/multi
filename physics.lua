@@ -249,6 +249,16 @@ function Physics.new(opts)
                     end
                 end)(self:_resolveIds(...))
             end,
+
+            sender = function(kind)
+                return function(_, maybeOpts, ...)
+                    if type(maybeOpts) == 'table' then
+                        game:send(setmetatable({ kind = kind }, { __index = maybeOpts }), ...)
+                    else
+                        game:send({ kind = kind }, maybeOpts, ...)
+                    end
+                end
+            end,
         })
     end
 
