@@ -798,7 +798,7 @@ function Physics:updateWorld(worldId, dt)
     return true
 end
 
-function Physics:sendSyncs(worldId)
+function Physics:sendSyncs(worldId, sendOpts)
     local world = assert(self.idToObject[worldId], 'updateWorld: no world with this id')
 
     if self.game.server then -- Server version
@@ -811,7 +811,8 @@ function Physics:sendSyncs(worldId)
                 end
             end
         end
-        self:serverSyncs(self.objectDatas[world].tickCount, worldId, syncs)
+        sendOpts = setmetatable({ kind = self.kindPrefix .. 'serverSyncs' }, { __index = sendOpts })
+        self.game:send(sendOpts, self.objectDatas[world].tickCount, worldId, syncs)
     end
 
     if self.game.client then -- Client version
@@ -828,7 +829,8 @@ function Physics:sendSyncs(worldId)
             end
         end
         if next(syncs) then -- Skip if nothing to send
-            self:clientSyncs(self.game.clientId, self.objectDatas[world].tickCount, worldId, syncs)
+            sendOpts = setmetatable({ kind = self.kindPrefix .. 'clientSyncs' }, { __index = sendOpts })
+            self.game:send(sendOpts, self.game.clientId, self.objectDatas[world].tickCount, worldId, syncs)
         end
     end
 end
