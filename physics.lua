@@ -410,7 +410,7 @@ function Physics.new(opts)
             selfSend = false,
         },
 
-        receiver = function(game, time, tickCount, worldId, syncs)
+        receiver = function(game, time, tickCount, worldId, syncs, ownerships)
             -- Get world
             local world = self.idToObject[worldId]
             if not world then
@@ -428,7 +428,7 @@ function Physics.new(opts)
             -- Actually apply the syncs
             for id, sync in pairs(syncs) do
                 local obj = self.idToObject[id]
-                if obj and self.objectDatas[obj].clientId ~= self.game.clientId then
+                if obj and self.objectDatas[obj].ownerId ~= self.game.clientId and ownerships[id] ~= self.game.clientId then
                     writeBodySync(obj, unpack(sync))
                 end
             end
@@ -803,16 +803,18 @@ function Physics:sendSyncs(worldId, sendOpts)
 
     if self.game.server then -- Server version
         local syncs = {}
+        local ownerships = {}
         for _, body in ipairs(world:getBodies()) do
             if body:isAwake() and body:getType() ~= 'static' then
                 local objectData = self.objectDatas[body]
                 if objectData then -- Make sure it's a network-tracked body
                     syncs[objectData.id] = { readBodySync(body) }
+                    ownerships[objectData.id] = objectData.ownerId
                 end
             end
         end
         sendOpts = setmetatable({ kind = self.kindPrefix .. 'serverSyncs' }, { __index = sendOpts })
-        self.game:send(sendOpts, self.objectDatas[world].tickCount, worldId, syncs)
+        self.game:send(sendOpts, self.objectDatas[world].tickCount, worldId, syncs, ownerships)
     end
 
     if self.game.client then -- Client version
