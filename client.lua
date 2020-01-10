@@ -8,7 +8,7 @@ local print = PRINT_OVERRIDE or print
 local client = clientServer.client
 client.numChannels = NUM_CHANNELS or 200
 
-if GET_SERVER_MODULE_NAME then
+if not LOCAL_SERVER and GET_SERVER_MODULE_NAME then
     local gameUrl = castle.game.getCurrent().url
     local isFileUrl = gameUrl:match('^file://')
     local isLANUrl = gameUrl:match('^http://192%.') or gameUrl:match('^http://172%.20%.') or gameUrl:match('http://10%.')
