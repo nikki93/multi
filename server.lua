@@ -8,7 +8,7 @@ local print = PRINT_OVERRIDE or print
 local server = clientServer.server
 server.numChannels = NUM_CHANNELS or 200
 
-if USE_LOCAL_SERVER then
+if LOCAL_SERVER then
     server.enabled = true
     server.start('22122')
 else

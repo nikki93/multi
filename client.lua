@@ -13,18 +13,21 @@ if GET_SERVER_MODULE_NAME then
     local isFileUrl = gameUrl:match('^file://')
     local isLANUrl = gameUrl:match('^http://192%.') or gameUrl:match('^http://172%.20%.') or gameUrl:match('http://10%.')
     if isFileUrl or isLANUrl then
-        USE_LOCAL_SERVER = true
         if isLANUrl then
-            LOCAL_SERVER_ADDRESS = gameUrl:match('^http://([^:/]*)')
+            SERVER_ADDRESS = gameUrl:match('^http://([^:/]*)')
         else
-            getfenv(GET_SERVER_MODULE_NAME).require(GET_SERVER_MODULE_NAME())
+            LOCAL_SERVER = true
         end
     end
 end
 
-if USE_LOCAL_SERVER then
+if LOCAL_SERVER then
+    getfenv(GET_SERVER_MODULE_NAME).require(GET_SERVER_MODULE_NAME())
+end
+
+if LOCAL_SERVER or SERVER_ADDRESS then
     client.enabled = true
-    client.start((LOCAL_SERVER_ADDRESS or '127.0.0.1') .. ':22122')
+    client.start((SERVER_ADDRESS or '127.0.0.1') .. ':22122')
 else
     client.useCastleConfig()
 end
