@@ -319,9 +319,9 @@ function Game:_update(dt)
         -- Periodically send pongs. Restart the connection if we didn't get a pong back for more than one second.
         if self.connected then
             local pong = math.floor(10 * (love.timer.getTime() - self._connectTime))
-            if self._lastPongReceived and pong - self._lastPongReceived > 10 then
+            if self._lastPongReceived and pong - self._lastPongReceived >= 18 then
                 self:kick()
-            elseif pong - self._lastPongSent > 5 then
+            elseif pong - self._lastPongSent >= 8 then
                 self._lastPongSent = pong
                 self:send('_pong', self.clientId, pong)
             end
