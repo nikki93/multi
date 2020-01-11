@@ -798,7 +798,15 @@ function Physics:updateWorld(worldId, dt)
     return true
 end
 
-function Physics:sendSyncs(worldId, sendOpts)
+function Physics:sendSyncs(...)
+    local sendOpts, worldId
+    local nArgs = select('#', ...)
+    if nArgs == 1 then
+        worldId = ...
+    elseif nArgs == 2 then
+        sendOpts, worldId = ...
+    end
+
     local world = assert(self.idToObject[worldId], 'updateWorld: no world with this id')
 
     if self.game.server then -- Server version
