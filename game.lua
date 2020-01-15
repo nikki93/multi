@@ -284,6 +284,10 @@ end
 function Game:_callReceiver(kindNum, time, ...)
     local kind = assert(self._numToKind[kindNum], 'receive: bad `kindNum`')
 
+    if self.debugReceive then
+        self:debugReceive(kind, time, ...)
+    end
+
     local receiver = self.receivers[kind]
     if receiver then
         receiver(self, time, ...)
