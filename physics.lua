@@ -85,28 +85,25 @@ end
 
 -- All `love.physics.new<X>` as `Physics:new<X>`, returns object id
 local CONSTRUCTOR_NAMES = {
-    'newBody', 'newChainShape', 'newCircleShape', 'newDistanceJoint',
-    'newEdgeShape', 'newFixture', 'newFrictionJoint', 'newGearJoint',
-    'newMotorJoint', 'newMouseJoint', 'newPolygonShape', 'newPrismaticJoint',
-    'newPulleyJoint', 'newRectangleShape', 'newRevoluteJoint', 'newRopeJoint',
+    'newBody', 'newChainShape', 'newCircleShape', 'newDistanceJoint', 'newEdgeShape', 'newFixture',
+    'newFrictionJoint', 'newGearJoint', 'newMotorJoint', 'newMouseJoint', 'newPolygonShape',
+    'newPrismaticJoint', 'newPulleyJoint', 'newRectangleShape', 'newRevoluteJoint', 'newRopeJoint',
     'newWeldJoint', 'newWheelJoint', 'newWorld',
 }
 
 -- All `:<foo>` as `Physics:<foo>` with object id as first param
 local RELIABLE_METHOD_NAMES = {
-    'setActive', 'setAngle', 'setAngularDamping', 'setAngularOffset',
-    'setAngularVelocity', 'setAwake', 'setBullet', 'setCategory',
-    'setContactFilter', 'setCorrectionFactor', 'setDampingRatio', 'setDensity',
-    'setEnabled', 'setFilterData', 'setFixedRotation', 'setFrequency',
-    'setFriction', 'setGravity', 'setGravityScale', 'setGroupIndex', 'setInertia',
-    'setLength', 'setLimits', 'setLimitsEnabled', 'setLinearDamping',
-    'setLinearOffset', 'setLinearVelocity', 'setLowerLimit', 'setMask', 'setMass',
-    'setMassData', 'setMaxForce', 'setMaxLength', 'setMaxMotorForce',
-    'setMaxMotorTorque', 'setMaxTorque', 'setMotorEnabled', 'setMotorSpeed',
-    'setNextVertex', 'setPoint', 'setPosition', 'setPreviousVertex', 'setRadius',
-    'setRatio', 'setRestitution', 'setSensor', 'setSleepingAllowed',
-    'setSpringDampingRatio', 'setSpringFrequency', 'setTangentSpeed', 'setTarget',
-    'setType', 'setUpperLimit', 'setX', 'setY', 'setUserData',
+    'setActive', 'setAngle', 'setAngularDamping', 'setAngularOffset', 'setAngularVelocity',
+    'setAwake', 'setBullet', 'setCategory', 'setContactFilter', 'setCorrectionFactor',
+    'setDampingRatio', 'setDensity', 'setEnabled', 'setFilterData', 'setFixedRotation',
+    'setFrequency', 'setFriction', 'setGravity', 'setGravityScale', 'setGroupIndex', 'setInertia',
+    'setLength', 'setLimits', 'setLimitsEnabled', 'setLinearDamping', 'setLinearOffset',
+    'setLinearVelocity', 'setLowerLimit', 'setMask', 'setMass', 'setMassData', 'setMaxForce',
+    'setMaxLength', 'setMaxMotorForce', 'setMaxMotorTorque', 'setMaxTorque', 'setMotorEnabled',
+    'setMotorSpeed', 'setNextVertex', 'setPoint', 'setPosition', 'setPreviousVertex', 'setRadius',
+    'setRatio', 'setRestitution', 'setSensor', 'setSleepingAllowed', 'setSpringDampingRatio',
+    'setSpringFrequency', 'setTangentSpeed', 'setTarget', 'setType', 'setUpperLimit', 'setX',
+    'setY', 'setUserData', 'resetMassData',
 }
 
 
