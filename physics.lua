@@ -507,6 +507,10 @@ function Physics.new(opts)
 
     if self.game.client then
         function self._postSolve(fixture1, fixture2, contact)
+            if fixture1:isSensor() or fixture2:isSensor() then
+                return
+            end
+
             local body1 = fixture1:getBody()
             local body2 = fixture2:getBody()
 
