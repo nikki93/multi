@@ -125,7 +125,7 @@ function Physics.new(opts)
 
     self.updateRate = opts.updateRate or 144
     self.historySize = opts.historySize or (self.updateRate * 0.5)
-    self.interpolationDelay = opts.interpolationDelay or 0.08
+    self.defaultInterpolationDelay = opts.defaultInterpolationDelay or 0.08
     self.softOwnershipSetDelay = opts.softOwnershipSetDelay or 0.8
 
     self.kindPrefix = opts.kindPrefix or 'physics_'
@@ -184,6 +184,7 @@ function Physics.new(opts)
                         if methodName == 'newBody' then
                             objectData.ownerId = nil
                             objectData.lastSetOwnerTickCount = 0
+                            objectData.interpolationDelay = nil
                             objectData.clientSyncHistory = {}
                             if self.game.server then
                                 objectData.history = {}
@@ -339,7 +340,7 @@ function Physics.new(opts)
             forward = true,
         },
 
-        receiver = function(_, time, tickCount, id, newOwnerId, strongOwned)
+        receiver = function(_, time, tickCount, id, newOwnerId, strongOwned, interpolationDelay)
             local obj = self.idToObject[id]
             if not obj then
                 error('setOwner: no / bad `id`')
@@ -368,7 +369,7 @@ function Physics.new(opts)
 
                 self.ownerIdToObjects[newOwnerId][obj] = true
                 objectData.ownerId = newOwnerId
-
+                objectData.interpolationDelay = interpolationDelay
                 objectData.lastSetOwnerTickCount = tickCount
             end
 
@@ -526,7 +527,7 @@ function Physics.new(opts)
                         if d2.ownerId ~= d1.ownerId then
                             if worldData.tickCount - d2.lastSetOwnerTickCount >= self.softOwnershipSetDelay * self.updateRate then
                                 if d1.strongOwned or d1.lastSetOwnerTickCount > d2.lastSetOwnerTickCount then
-                                    self:setOwner(d2.id, d1.ownerId, false)
+                                    self:setOwner(d2.id, d1.ownerId, false, d1.interpolationDelay)
                                 end
                             end
                         end
@@ -701,7 +702,7 @@ function Physics:_tickWorld(world, worldData)
                     end
 
                     -- Interpolate
-                    local interpolationDelay = self.interpolationDelay
+                    local interpolationDelay = objectData.interpolationDelay or self.defaultInterpolationDelay
                     if not objectData.strongOwned then
                         interpolationDelay = 0.8 * interpolationDelay
                     end
