@@ -189,14 +189,11 @@ function Game:send(opts, ...)
     assert(type(kind) == 'string', 'send: `kind` needs to be a string')
     local kindNum = assert(self._kindToNum[kind], "kind '" .. kind .. "' not defined")
 
-    if self._transaction then -- Transacting? Insert into transaction, calling local receiver immediately if self-send
-        table.insert(self._transaction.messages, {
-            kindNum,
-            select('#', ...),
-            ...,
-        })
-        if self._transaction.opts.selfSend or self._transaction.opts.selfSendOnly then
-            self:_callReceiver(kindNum, self._transaction.time, ...)
+    if self._transaction then -- Transacting? Insert into transaction, call local receiver immediately if self-send
+        local transaction = self._transaction
+        table.insert(transaction.messages, { kindNum, select('#', ...), ... })
+        if transaction.opts.selfSend or transaction.opts.selfSendOnly then
+            self:_callReceiver(kindNum, transaction.time, ...)
         end
         return
     end
@@ -333,7 +330,7 @@ function Game:transact(opts, func, ...)
     self:send(setmetatable({
         kind = '_transact',
         time = transaction.time,
-        selfSend = false,
+        selfSend = false, -- Local receivers have already been called, `_transact` shouldn't self-send
         selfSendOnly = false,
     }, { __index = transaction.opts }), transaction.messages)
 end
