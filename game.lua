@@ -52,6 +52,8 @@ function Game:_init(opts)
 
     self._kindThrottles = {} -- `kind` -> `{ period, timeSinceLastSend }`
 
+    self._transaction = nil
+
     self:defineMessageKind('_initial', {
         from = 'server',
         reliable = true,
@@ -73,6 +75,10 @@ function Game:_init(opts)
         channel = 50,
         selfSend = false,
         forward = false,
+    })
+
+    self:defineMessageKind('_transact', {
+        -- Make user have to specify options
     })
 
     self:define()
@@ -179,11 +185,23 @@ function Game:send(opts, ...)
         opts = { kind = opts }
     end
 
-    local time = opts.time or self.time
-
     local kind = opts.kind
     assert(type(kind) == 'string', 'send: `kind` needs to be a string')
     local kindNum = assert(self._kindToNum[kind], "kind '" .. kind .. "' not defined")
+
+    if self._transaction then -- Transacting? Insert into transaction, calling local receiver immediately if self-send
+        table.insert(self._transaction.messages, {
+            kindNum,
+            select('#', ...),
+            ...,
+        })
+        if self._transaction.opts.selfSend or self._transaction.opts.selfSendOnly then
+            self:_callReceiver(kindNum, self._transaction.time, ...)
+        end
+        return
+    end
+
+    local time = opts.time or self.time
 
     local defaults = self._kindDefaults[kind]
 
@@ -282,7 +300,7 @@ function Game:_receive(fromClientId, channel, kindNum, time, forward, reliable, 
 end
 
 function Game:_callReceiver(kindNum, time, ...)
-    local kind = assert(self._numToKind[kindNum], 'receive: bad `kindNum`')
+    local kind = assert(self._numToKind[kindNum], '_callReceiver: bad `kindNum`')
 
     if self.debugReceive then
         self:debugReceive(kind, time, ...)
@@ -291,6 +309,38 @@ function Game:_callReceiver(kindNum, time, ...)
     local receiver = self.receivers[kind]
     if receiver then
         receiver(self, time, ...)
+    end
+end
+
+function Game:transact(opts, func, ...)
+    if self._transaction then
+        error('transact: already in a transaction')
+    end
+
+    local transaction = {
+        time = opts.time or self.time,
+        opts = opts,
+        messages = {},
+    }
+
+    self._transaction = transaction
+    local succeeded, err = pcall(func, ...)
+    self._transaction = nil
+    if not succeeded then
+        error(err, 0)
+    end
+
+    self:send(setmetatable({
+        kind = '_transact',
+        time = transaction.time,
+        selfSend = false,
+        selfSendOnly = false,
+    }, { __index = transaction.opts }), transaction.messages)
+end
+
+function Game.receivers:_transact(time, messages)
+    for _, message in ipairs(messages) do
+        self:_callReceiver(message[1], time, unpack(message, 3, message[2] + 2))
     end
 end
 

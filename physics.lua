@@ -409,6 +409,11 @@ function Physics.new(opts)
         },
 
         receiver = function(game, time, tickCount, worldId, syncs, ownerships)
+            if self.game.server then
+                -- This may happen if we were called in a self-send transaction on the server
+                return
+            end
+
             -- Get world
             local world = self.idToObject[worldId]
             if not world then
