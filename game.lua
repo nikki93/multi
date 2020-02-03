@@ -151,6 +151,7 @@ end
 
 function Game:_disconnect(clientId)
     self:disconnect(clientId)
+    self._pendingReceives = PriorityQueue.new(self._pendingReceives.Compare)
     if self.server then
         self._clientIds[clientId] = nil
     end
