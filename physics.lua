@@ -508,8 +508,26 @@ function Physics.new(opts)
 
     -- Collision callbacks
 
-    if self.game.client then
-        function self._postSolve(fixture1, fixture2, contact)
+    function self._beginContact(fixture1, fixture2, contact, ...)
+        if self.onContact then
+            self.onContact('begin', fixture1, fixture2, contact, ...)
+        end
+    end
+
+    function self._endContact(fixture1, fixture2, contact, ...)
+        if self.onContact then
+            self.onContact('end', fixture1, fixture2, contact, ...)
+        end
+    end
+
+    function self._preSolve(fixture1, fixture2, contact, ...)
+        if self.onSolve then
+            self.onSolve('pre', fixture1, fixture2, contact, ...)
+        end
+    end
+
+    function self._postSolve(fixture1, fixture2, contact, ...)
+        if self.game.client then -- Spread ownerships from strong -> weak
             if fixture1:isSensor() or fixture2:isSensor() then
                 return
             end
@@ -543,7 +561,8 @@ function Physics.new(opts)
             end
         end
 
-        function self._endContact(fixture1, fixture2, contact)
+        if self.onSolve then
+            self.onSolve('post', fixture1, fixture2, contact, ...)
         end
     end
 
