@@ -872,8 +872,8 @@ function Physics:sendSyncs(...)
 end
 
 
-function Physics:getOwner(id)
-    local objectData = self.objectDatas[self.idToObject[id]]
+function Physics:getOwner(idOrObject)
+    local objectData = self.objectDatas[idOrObject] or self.objectDatas[self.idToObject[idOrObject]]
     if objectData then
         return objectData.ownerId, objectData.strongOwned
     end
