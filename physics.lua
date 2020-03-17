@@ -183,7 +183,7 @@ function Physics.new(opts)
                         local objectData = { id = id }
                         if methodName == 'newBody' then
                             objectData.ownerId = nil
-                            objectData.lastSetOwnerTickCount = 0
+                            objectData.lastSetOwnerTickCount = nil
                             objectData.interpolationDelay = nil
                             objectData.clientSyncHistory = {}
                             if self.game.server then
@@ -356,7 +356,7 @@ function Physics.new(opts)
                     objectData.ownerId = nil
                 end
 
-                objectData.lastSetOwnerTickCount = 0
+                objectData.lastSetOwnerTickCount = nil
             else -- Setting owner
                 if objectData.ownerId ~= nil then -- Already owned by someone?
                     if objectData.ownerId == newOwnerId then
@@ -548,8 +548,10 @@ function Physics.new(opts)
                 local function check(d1, d2)
                     if d1.ownerId ~= nil  and not d2.strongOwned then
                         if d2.ownerId ~= d1.ownerId then
-                            if worldData.tickCount - d2.lastSetOwnerTickCount >= self.softOwnershipSetDelay * self.updateRate then
-                                if d1.strongOwned or d1.lastSetOwnerTickCount > d2.lastSetOwnerTickCount then
+                            -- Enough time since last owner setting?
+                            if not d2.lastSetOwnerTickCount or worldData.tickCount - d2.lastSetOwnerTickCount >= self.softOwnershipSetDelay * self.updateRate then
+                                -- Strong owner or more recently set?
+                                if d1.strongOwned or not d2.lastSetOwnerTickCount or (d1.lastSetOwnerTickCount and d1.lastSetOwnerTickCount > d2.lastSetOwnerTickCount) then
                                     self:setOwner(d2.id, d1.ownerId, false, d1.interpolationDelay)
                                 end
                             end
