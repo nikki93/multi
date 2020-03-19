@@ -1,7 +1,7 @@
 local Game = {}
 
 
-local PriorityQueue = require 'https://raw.githubusercontent.com/Roblox/Wiki-Lua-Libraries/776a48bd1562c7df557a92e3ade6544efa5b031b/StandardLibraries/PriorityQueue.lua'
+local PriorityQueue = require 'vendor.PriorityQueue'
 
 
 --

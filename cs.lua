@@ -1,6 +1,6 @@
 local enet = require 'enet'
-local serpent = require 'https://raw.githubusercontent.com/pkulchenko/serpent/522a6239f25997b101c585c0daf6a15b7e37fad9/src/serpent.lua'
-local bitser = require 'https://raw.githubusercontent.com/gvx/bitser/214ad35f62d5abbc0c9a421287aa0964f6f63003/bitser.lua'
+local serpent = require 'vendor.serpent'
+local bitser = require 'vendor.bitser'
 
 
 local print = PRINT_OVERRIDE or print
