@@ -805,7 +805,7 @@ function Physics:updateWorld(worldId, dt)
     end
 
     -- Catch up world to current time
-    if self.game.client and (not worldData.lastServerSyncTime or
+    if self.game.client and (worldData.lastServerSyncTime and
             self.game.time - worldData.lastServerSyncTime > 5 / self.serverSyncsRate) then
         if worldData.lastServerSyncTime then
             self.lastNetworkIssueTime = love.timer.getTime()
