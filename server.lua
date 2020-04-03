@@ -10,7 +10,7 @@ server.numChannels = NUM_CHANNELS or 200
 
 if LOCAL_SERVER then
     server.enabled = true
-    server.start('22122')
+    server.start(LOCAL_SERVER_PORT)
 else
     server.useCastleConfig()
 end

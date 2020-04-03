@@ -27,7 +27,7 @@ end
 
 if LOCAL_SERVER or SERVER_ADDRESS then
     client.enabled = true
-    client.start((SERVER_ADDRESS or '127.0.0.1') .. ':22122')
+    client.start((SERVER_ADDRESS or '127.0.0.1') .. ':' .. LOCAL_SERVER_PORT)
 else
     client.useCastleConfig()
 end
