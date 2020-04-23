@@ -65,7 +65,6 @@ do
             serverHasSentConnect = true
         end
 
-        print("server count " .. #serverPendingMessages)
         while next(serverPendingMessages) ~= nil do
             local event = table.remove(serverPendingMessages, 1)
 
@@ -141,7 +140,6 @@ do
             clientHasSentConnect = true
         end
 
-        print("client count " .. #clientPendingMessages)
         while next(clientPendingMessages) ~= nil do
             local event = table.remove(clientPendingMessages, 1)
 
