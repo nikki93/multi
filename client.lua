@@ -1,20 +1,20 @@
-local clientServer = require 'cs'
+local clientServer = require "localcs"
 
-local Game = require 'game'
+local Game = require "game"
 
 local print = PRINT_OVERRIDE or print
-
 
 local client = clientServer.client
 client.numChannels = NUM_CHANNELS or 200
 
 if not LOCAL_SERVER and GET_SERVER_MODULE_NAME then
     local gameUrl = castle.game.getCurrent().url
-    local isFileUrl = gameUrl:match('^file://')
-    local isLANUrl = gameUrl:match('^http://192%.') or gameUrl:match('^http://172%.20%.') or gameUrl:match('http://10%.')
+    local isFileUrl = gameUrl:match("^file://")
+    local isLANUrl =
+        gameUrl:match("^http://192%.") or gameUrl:match("^http://172%.20%.") or gameUrl:match("http://10%.")
     if isFileUrl or isLANUrl then
         if isLANUrl then
-            SERVER_ADDRESS = gameUrl:match('^http://([^:/]*)')
+            SERVER_ADDRESS = gameUrl:match("^http://([^:/]*)")
         else
             LOCAL_SERVER = true
         end
@@ -27,49 +27,46 @@ end
 
 if LOCAL_SERVER or SERVER_ADDRESS then
     client.enabled = true
-    client.start((SERVER_ADDRESS or '127.0.0.1') .. ':' .. LOCAL_SERVER_PORT)
+    client.start((SERVER_ADDRESS or "127.0.0.1") .. ":" .. LOCAL_SERVER_PORT)
 else
     client.useCastleConfig()
 end
 
-
 local game = Game.Client:_new()
 
-
 function client.load()
-    game:_init({
-        client = client,
-    })
+    game:_init(
+        {
+            client = client
+        }
+    )
 end
 
 function client.quit()
     game:stop()
 end
 
-
 function client.connect()
-    print('client: connected to server')
+    print("client: connected to server")
 
     game:_connect()
 end
 
 function client.reconnect()
-    print('client: reconnected to server')
+    print("client: reconnected to server")
 
     game:_connect(nil, true)
 end
 
 function client.disconnect()
-    print('client: disconnected from server')
+    print("client: disconnected from server")
 
     game:_disconnect()
 end
 
-
 function client.receive(channel, ...)
     game:_receive(nil, channel, ...)
 end
-
 
 function client.draw()
     game:draw()
@@ -78,7 +75,6 @@ end
 function client.update(dt)
     game:_update(dt)
 end
-
 
 local loveCallbacks = {
     -- Implemented above
@@ -95,7 +91,6 @@ local loveCallbacks = {
     lowmemory = true,
     threaderror = true,
     directorydropped = true,
-
     filedropped = true,
     focus = true,
     keypressed = true,
@@ -120,7 +115,7 @@ local loveCallbacks = {
     joystickhat = true,
     joystickpressed = true,
     joystickreleased = true,
-    joystickremoved = true,
+    joystickremoved = true
 }
 
 for loveCallback in pairs(loveCallbacks) do
@@ -136,6 +131,5 @@ function client.uiupdate(...)
         game:uiupdate(...)
     end
 end
-
 
 return Game
