@@ -1,6 +1,7 @@
 local enet = require "enet"
 local serpent = require "vendor.serpent"
 local bitser = require "vendor.bitser"
+local inspect = require "vendor.inspect"
 
 local print = PRINT_OVERRIDE or print
 
@@ -62,6 +63,12 @@ do
 
     function server.sendExt(id, channel, flag, ...)
         local data = encode({select("#", ...), ...})
+
+        if DEBUG_CS then
+            local request = decode(data)
+            print("server sendext: " .. inspect(request))
+        end
+
         if id == "all" then
             host:broadcast(data, channel, flag)
         else
@@ -132,6 +139,9 @@ do
                             end
                         else
                             if server.connect then
+                                if DEBUG_CS then
+                                    print("server.connect " .. id)
+                                end
                                 server.connect(id)
                             end
                         end
@@ -175,6 +185,9 @@ do
 
                         -- Message?
                         if request[1] and server.receive then
+                            if DEBUG_CS then
+                                print("server receive: " .. inspect(request))
+                            end
                             server.receive(id, event.channel, unpack(request, 2, request[1] + 1))
                         end
                     end
@@ -264,6 +277,12 @@ do
 
     function client.sendExt(channel, flag, ...)
         local data = encode({select("#", ...), ...})
+
+        if DEBUG_CS then
+            local request = decode(data)
+            print("client sendext: " .. inspect(request))
+        end
+
         assert(peer, "client is not connected"):send(data, channel, flag)
     end
 
@@ -335,6 +354,9 @@ do
 
                     -- Message?
                     if request[1] and client.receive then
+                        if DEBUG_CS then
+                            print("client receive: " .. inspect(request))
+                        end
                         client.receive(event.channel, unpack(request, 2, request[1] + 1))
                     end
 
@@ -350,6 +372,9 @@ do
                         else
                             client.id = request.id
                             if client.connect then
+                                if DEBUG_CS then
+                                    print("client.connect")
+                                end
                                 client.connect()
                             end
                         end

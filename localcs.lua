@@ -1,4 +1,5 @@
 local bitser = require "vendor.bitser"
+local inspect = require "vendor.inspect"
 
 local encode = bitser.dumps
 local decode = bitser.loads
@@ -8,6 +9,8 @@ local client = {}
 
 do
     local clientId = 1
+    local serverFrame = 0
+    local serverConnectFrame = 2
     local serverHasSentConnect = false
     local serverPendingMessages = {}
 
@@ -25,6 +28,12 @@ do
 
     function server.sendExt(id, channel, flag, ...)
         local data = encode({select("#", ...), ...})
+
+        if DEBUG_CS then
+            local request = decode(data)
+            print("server sendext: " .. inspect(request))
+        end
+
         client.LOCALSEND(data, channel)
     end
 
@@ -60,7 +69,11 @@ do
     end
 
     function server.preupdate()
-        if not serverHasSentConnect then
+        serverFrame = serverFrame + 1
+        if not serverHasSentConnect and serverFrame > serverConnectFrame then
+            if DEBUG_CS then
+                print("server.connect " .. clientId)
+            end
             server.connect(clientId)
             serverHasSentConnect = true
         end
@@ -68,11 +81,20 @@ do
         while next(serverPendingMessages) ~= nil do
             local event = table.remove(serverPendingMessages, 1)
 
-            local request = decode(event.data)
+            -- we drop some messages here before the client connects. this is intentional to
+            -- mirror the behavior of the real http server
 
-            -- Message?
-            if request[1] then
-                server.receive(clientId, event.channel, unpack(request, 2, request[1] + 1))
+            -- if we don't drop these, we get this error "physics.lua:231: newWorld: object with this id 0-1 already exists"
+            if serverFrame > serverConnectFrame then
+                local request = decode(event.data)
+
+                -- Message?
+                if request[1] then
+                    if DEBUG_CS then
+                        print("server receive: " .. inspect(request))
+                    end
+                    server.receive(clientId, event.channel, unpack(request, 2, request[1] + 1))
+                end
             end
         end
     end
@@ -82,6 +104,8 @@ do
 end
 
 do
+    local clientFrame = 0
+    local clientConnectFrame = 2
     local clientHasSentConnect = false
     local clientPendingMessages = {}
     client.id = 1
@@ -100,6 +124,12 @@ do
 
     function client.sendExt(channel, flag, ...)
         local data = encode({select("#", ...), ...})
+
+        if DEBUG_CS then
+            local request = decode(data)
+            print("client sendext: " .. inspect(request))
+        end
+
         server.LOCALSEND(data, channel)
     end
 
@@ -135,7 +165,11 @@ do
     end
 
     function client.preupdate(dt)
-        if not clientHasSentConnect then
+        clientFrame = clientFrame + 1
+        if not clientHasSentConnect and clientFrame > clientConnectFrame then
+            if DEBUG_CS then
+                print("client.connect")
+            end
             client.connect()
             clientHasSentConnect = true
         end
@@ -143,11 +177,16 @@ do
         while next(clientPendingMessages) ~= nil do
             local event = table.remove(clientPendingMessages, 1)
 
-            local request = decode(event.data)
+            if clientFrame > clientConnectFrame then
+                local request = decode(event.data)
 
-            -- Message?
-            if request[1] then
-                client.receive(event.channel, unpack(request, 2, request[1] + 1))
+                -- Message?
+                if request[1] then
+                    if DEBUG_CS then
+                        print("client receive: " .. inspect(request))
+                    end
+                    client.receive(event.channel, unpack(request, 2, request[1] + 1))
+                end
             end
         end
     end

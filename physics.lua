@@ -227,10 +227,7 @@ function Physics.new(opts)
                 receiver = function(_, time, id, ...)
                     (function(...)
                         if self.idToObject[id] then
-                            return
-                        -- TODO: getting this error "physics.lua:231: newWorld: object with this id 0-1 already exists"
-                        -- when i have this error enabled with localcs
-                        --error(methodName .. ": object with this id " .. id .. " already exists")
+                            error(methodName .. ": object with this id " .. id .. " already exists")
                         end
                         local obj
                         local succeeded, err =
